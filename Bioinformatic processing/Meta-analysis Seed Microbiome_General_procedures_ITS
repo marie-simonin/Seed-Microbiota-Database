@@ -1,0 +1,665 @@
+# Meta-analysis Seed Microbiome
+#### Marie Simonin
+### 10 April 2020
+
+
+# Procedure for downloading and processing amplicon sequence data from the literature - FOR PAIRED END DATA
+
+
+## 1. Dowloading the raw sequence data from ENA 
+https://www.ebi.ac.uk/ena
+1. enter the accession number in the search engine
+
+2. Download a txt file that contains metadata and ftp links (for downloading fastqs) by clicking on TEXT in the Read Files tab on the submission
+This tab takes sometimes a little bit of time to appear between the Navigation and Attributes tabs.
+To be sure that you have all the metadata, you can click on "select columns" before downloading the txt file and select more columns that could be relevant for metadata (sample names, library names...)
+
+3. Open the txt file and select all the ftp links present in the "fastq_ftp" column
+
+4. Open a terminal and use wget to download the fastq files with these ftp links : example below
+
+wget ftp.sra.ebi.ac.uk/vol1/fastq/ERR286/004/ERR2862034/ERR2862034.fastq.gz
+
+#### Verify if some of the fastq.gz files are corrupted
+gzip -t *.gz
+
+# Procedure for processing ITS amplicon sequence data - Just ITS forward reads (process single end)
+##Move all forward reads (R1 fastq) to a folder
+mkdir Forward_reads
+cp *_R1_* Forward_reads/
+
+cd Forward_reads
+
+#Create list of sample IDs named "group"
+ls *.gz | awk -F"_" {'print $1"_"$2"_"$3"_"'} | sort | uniq > group
+
+#Trim ITS  primers and separe the reads with cutadapt 2.7
+mkdir ITS_trimmed 
+
+##For ITS1 region 
+for i in *.gz; do ~/.local/bin/cutadapt --discard-untrimmed -g CTTGGTCATTTAGAGGAAGTAA $i -o ITS_trimmed/$i; done
+
+##For ITS2 Region: ITS3 primer GCATCGATGAAGAACGCAGC  
+for i in *.gz; do ~/.local/bin/cutadapt --discard-untrimmed -g GCATCGATGAAGAACGCAGC $i -o ITS_trimmed/$i; done
+
+## Importing raw sequences in qiime2 - quality check 
+source activate qiime2-2019.7
+export PATH=/Users/msimonin/miniconda3/envs/qiime2-2019.7/bin:$PATH
+
+###Importing data with Casava format (ex: eDNA1012_S50_L001_R1_001.fastq.gz)
+qiime tools import \
+  --type 'SampleData[SequencesWithQuality]' \
+  --input-path 'ITS_trimmed' \
+  --input-format CasavaOneEightSingleLanePerSampleDirFmt \
+  --output-path Klaedtke_S_2016_ITS_Forward.qza
+
+
+  ### Quality Check
+qiime demux summarize \
+ --i-data Klaedtke_S_2016_ITS_Forward.qza \
+ --o-visualization Klaedtke_S_2016_ITS_Forward.qzv
+qiime tools view Klaedtke_S_2016_ITS_Forward.qzv
+
+
+
+## Run DADA2 - For 2 x 300bp reads, use "p-trunc-len 229" to obtain ASVs of exactly the same length and fraction of ITS region 
+####Processed on R version 3.5.1 (2018-07-02) 
+####DADA2: 1.10.0 / Rcpp: 1.0.2 / RcppParallel: 4.4.3 
+
+qiime dada2 denoise-single \
+  --i-demultiplexed-seqs Klaedtke_S_2016_ITS_Forward.qza \
+  --p-trim-left 0 \
+  --p-trunc-len 0 \
+  --p-n-threads 2 \
+  --o-table Klaedtke_S_2016_ITS_Forward-table.qza \
+  --o-representative-sequences Klaedtke_S_2016_ITS_Forward-rep-seqs.qza \
+  --o-denoising-stats Klaedtke_S_2016_ITS_Forward-denoising-stats.qza \
+  --verbose
+
+qiime metadata tabulate \
+  --m-input-file Klaedtke_S_2016_ITS_Forward-denoising-stats.qza \
+  --o-visualization Klaedtke_S_2016_ITS_Forward_denoising-stats.qzv
+qiime tools view Klaedtke_S_2016_ITS_Forward_denoising-stats.qzv
+# look for any substantial drops
+
+qiime feature-table summarize \
+  --i-table Klaedtke_S_2016_ITS_Forward-table.qza \
+  --o-visualization Klaedtke_S_2016_ITS_Forward-table.qzv \
+  --m-sample-metadata-file Design_ITS_lab_data_mb.txt
+qiime tools view Klaedtke_S_2016_ITS_Forward-table.qzv
+# Verify number of samples, and sequencing depth.
+
+qiime feature-table tabulate-seqs \
+  --i-data Klaedtke_S_2016_ITS_Forward-rep-seqs.qza \
+  --o-visualization Klaedtke_S_2016_ITS_Forward-rep-seqs.qzv
+qiime tools view Klaedtke_S_2016_ITS_Forward-rep-seqs.qzv
+# Sequence length, and should start with “TAC….”, and number of SVs.
+
+
+###5.Assign taxonomy to the ASVs. Use pre-trained classifier for entire ITS of the UNITE 8.2 (feb 2020) database
+
+source activate qiime2-2019.7
+
+qiime feature-classifier classify-sklearn \
+  --i-classifier ~/Desktop/UNITE-ver8-99-classifier-04.02.2020.qza \
+  --i-reads Klaedtke_S_2016_ITS_Forward-rep-seqs.qza \
+  --o-classification Klaedtke_S_2016_ITS_Forward-rep-seqs-taxonomy.qza \
+  --p-n-jobs 1 \
+  --verbose
+
+
+##Visualization of the taxonomy output
+
+qiime metadata tabulate \
+  --m-input-file Klaedtke_S_2016_ITS_Forward-rep-seqs-taxonomy.qza \
+  --o-visualization Klaedtke_S_2016_ITS_Forward-rep-seqs-taxonomy.qzv
+
+
+##6.Remove SVs in the table that are unassigned or not Fungi (Viridiplantae, Protist...)
+
+qiime taxa filter-table \
+  --i-table Klaedtke_S_2016_ITS_Forward-table.qza \
+  --i-taxonomy Klaedtke_S_2016_ITS_Forward-rep-seqs-taxonomy.qza \
+  --p-include k__Fungi \
+  --o-filtered-table Klaedtke_S_2016_ITS_Forward_table-filtered.qza
+
+qiime feature-table summarize \
+  --i-table Klaedtke_S_2016_ITS_Forward_table-filtered.qza \
+  --o-visualization Klaedtke_S_2016_ITS_Forward_table-filtered.qzv \
+  --m-sample-metadata-file Design_ITS_lab_data_mb.txt
+
+
+##7.Other filtering/cleaning steps 
+
+###Remove samples with low read counts
+
+qiime feature-table filter-samples \
+  --i-table Klaedtke_S_2016_ITS_Forward_table-filtered.qza \
+  --p-min-frequency 1000 \
+  --o-filtered-table Klaedtke_S_2016_ITS_Forward_table-filtered-filtered-table.qza
+
+## Keep only seed and germinating seed samples
+
+qiime feature-table filter-samples \
+  --i-table Klaedtke_S_2016_ITS_Forward_table-filtered-filtered-table.qza \
+  --m-metadata-file Design_ITS_lab_data_mb.txt \
+  --p-where "[Habitat] IN ('Seed')" \
+  --o-filtered-table Klaedtke_S_2016_ITS_Forward_table-FINAL.qza
+
+qiime feature-table summarize \
+  --i-table Klaedtke_S_2016_ITS_Forward_table-FINAL.qza \
+  --o-visualization Klaedtke_S_2016_ITS_Forward_table-FINAL.qzv \
+  --m-sample-metadata-file Design_ITS_lab_data_mb.txt
+
+
+###Filter the the rep-seq.qza to keep only SVs that are present in the final SV table (remove SVs that were Chloroplast, Mitochondria )
+source activate qiime2-2019.7
+
+qiime feature-table filter-seqs \
+  --i-data Klaedtke_S_2016_ITS_Forward-rep-seqs.qza \
+  --i-table Klaedtke_S_2016_ITS_Forward_table-FINAL.qza \
+  --o-filtered-data Klaedtke_S_2016_ITS_Forward-rep-seqs-FINAL.qza
+
+qiime feature-table tabulate-seqs \
+  --i-data Klaedtke_S_2016_ITS_Forward-rep-seqs-FINAL.qza \
+  --o-visualization Klaedtke_S_2016_ITS_Forward-rep-seqs-FINAL.qzv
+qiime tools view Klaedtke_S_2016_ITS_Forward-rep-seqs-FINAL.qzv
+
+
+## 8. Check rarefaction curves and rarefy dataset
+
+## Check rarefaction curves - change pmin- and pmax-depth for each dataset
+qiime diversity alpha-rarefaction \
+  --i-table Klaedtke_S_2016_ITS_Forward_table-FINAL.qza \
+  --m-metadata-file Design_ITS_lab_data_mb.txt \
+  --o-visualization Klaedtke_S_2016_alpha_rarefaction_curves.qzv \
+  --p-min-depth 74180 \
+  --p-max-depth 229399
+
+qiime diversity alpha-rarefaction \
+   --i-table Klaedtke_S_2016_ITS_Forward_table-FINAL.qza \
+   --p-max-depth 229399 \
+   --p-steps 20 \
+   --o-visualization Klaedtke_S_2016_rarefaction_curves_eachsample.qzv
+
+## Choose rarefaction level and rarefy the table
+qiime feature-table rarefy \
+  --i-table Klaedtke_S_2016_ITS_Forward_table-FINAL.qza \
+  --p-sampling-depth 74180 \
+  --o-rarefied-table Klaedtke_S_2016_ITS_Forward_table-FINAL-rarefied.qza
+
+
+
+### 9. Summary after rarefaction and export SV table and rep seqs fasta file + taxonomy
+
+qiime feature-table summarize \
+  --i-table Klaedtke_S_2016_ITS_Forward_table-FINAL-rarefied.qza \
+  --o-visualization Klaedtke_S_2016_ITS_Forward_table-FINAL-rarefied.qzv \
+  --m-sample-metadata-file Design_ITS_lab_data_mb.txt
+
+###Filter the the rep-seq.qza to keep only SVs that are present in the rarefied SV table 
+ qiime feature-table filter-seqs \
+  --i-data Klaedtke_S_2016_ITS_Forward-rep-seqs.qza \
+  --i-table Klaedtke_S_2016_ITS_Forward_table-FINAL-rarefied.qza \
+  --o-filtered-data Klaedtke_S_2016_ITS_Forward-rep-seqs-FINAL-rarefied.qza
+
+
+
+## Export Representative sequences for unrarefied and rarefied datasets
+qiime tools export \
+   --input-path Klaedtke_S_2016_ITS_Forward-rep-seqs-FINAL-rarefied.qza \
+   --output-path ITS_Final_output_files 
+ 
+
+  qiime tools export \
+   --input-path Klaedtke_S_2016_ITS_Forward-rep-seqs-FINAL.qza \
+   --output-path ITS_Final_output_files
+
+## Export SV tables for unrarefied and rarefied datasets 
+qiime tools export \
+  --input-path Klaedtke_S_2016_ITS_Forward_table-FINAL-rarefied.qza \
+  --output-path ITS_Final_output_files 
+
+qiime tools export \
+  --input-path Klaedtke_S_2016_ITS_Forward_table-FINAL.qza \
+  --output-path ITS_Final_output_files 
+
+cd ITS_Final_output_files/
+biom convert \
+   -i Klaedtke_S_2016_ITS_Forward_table-FINAL-rarefied.biom \
+   -o Klaedtke_S_2016_ITS_Forward_table-FINAL-rarefied.txt \
+   --to-tsv
+
+biom convert \
+   -i Klaedtke_S_2016_ITS_Forward_table-FINAL.biom \
+   -o Klaedtke_S_2016_ITS_Forward_table-FINAL.txt \
+   --to-tsv
+
+
+## 10. Make phylogenetic tree on non-rarefied and rarefied dataset
+### in Qiime2 Make Phylogenetic tree (on all SVs or rarefied SVs) 
+cd ..
+qiime phylogeny align-to-tree-mafft-fasttree \
+  --i-sequences Klaedtke_S_2016_ITS_Forward-rep-seqs-FINAL.qza \
+  --o-alignment Klaedtke_S_2016_ITS_Forward-rep-seqs-FINAL-aligned.qza \
+  --o-masked-alignment Klaedtke_S_2016_ITS_Forward-rarefied-masked-aligned-rep-seqs.qza \
+  --o-tree Klaedtke_S_2016_ITS_Forward-ITS-unrooted-tree.qza \
+  --o-rooted-tree Klaedtke_S_2016_ITS_Forward-ITS-rooted-tree.qza
+
+
+## 11. Calculate alpha and beta diversity index - change rarefaction level for each study
+
+qiime diversity core-metrics-phylogenetic \
+  --i-table Klaedtke_S_2016_ITS_Forward_table-FINAL.qza \
+  --i-phylogeny Klaedtke_S_2016_ITS_Forward-ITS-rooted-tree.qza \
+  --m-metadata-file Design_ITS_lab_data_mb.txt \
+  --p-sampling-depth 74180 \
+  --output-dir ./diversity-metrics-results
+
+qiime diversity alpha-group-significance \
+   --i-alpha-diversity diversity-metrics-results/observed_otus_vector.qza \
+   --m-metadata-file ~/Desktop/Meta_analysis/Klaedtke_S_2016/ITS/Forward_reads/Design_ITS_lab_data_mb.txt \
+   --o-visualization diversity-metrics-results/observed_otus_compare_groups.qzv
+
+
+  ## 12. Check taxonomy bar graph
+qiime taxa barplot \
+  --i-table Klaedtke_S_2016_ITS_Forward_table-FINAL-rarefied.qza \
+  --i-taxonomy Klaedtke_S_2016_ITS_Forward-rep-seqs-taxonomy.qza \
+  --m-metadata-file Design_ITS_lab_data_mb.txt \
+  --o-visualization Klaedtke_S_2016_ITS_Forward_taxa_barplot_rarefied.qzv
+
+
+
+
+
+
+###############################################################################################
+# Merging metadata txt files - works if the header is the same in all files
+####Might be necessary to run first: chmod +x Merging_txt_files.sh 
+./Merging_txt_files.sh 
+
+
+##13. Merging different datasets (rep-seq, tables, metadata)
+source activate qiime2-2019.7
+
+##For ITS1 region, Leff and Bakker not merged because shorter fragment
+
+####Merging SV tables
+qiime feature-table merge \
+  --i-tables Vivanco_ITS_Forward_table-FINAL.qza \
+  --i-tables Barret_M_2015_ITS_Forward_table-FINAL.qza \
+  --i-tables BrassicaDivPatho_ITS_Forward_table-FINAL.qza \
+  --i-tables Bnapus_Y2_ITS_Forward_table-FINAL.qza \
+  --i-tables Bnapus_Y3_ITS_Forward_table-FINAL.qza \
+  --i-tables Endowild_ITS_Forward_table-FINAL.qza \
+  --i-tables Klaedtke_S_2016_ITS_Forward_table-FINAL.qza \
+  --i-tables Prado_A_2019_ITS_Forward_table-FINAL.qza \
+  --i-tables Rezki_S_2016_ITS_Forward_table-FINAL.qza \
+  --i-tables Wassermann_B_2019_ITS_Forward_table-FINAL.qza \
+  --i-tables Huet_S_2020_ITS_Forward_table-FINAL.qza \
+  --i-tables Abdelfattah_A_2020_ITS_Forward_table-FINAL.qza \
+  --i-tables Idbella_M_2020_ITS_Forward_table-FINAL.qza \
+  --i-tables Bintarti_F_2020_ITS_Forward_table-FINAL.qza \
+  --i-tables AFRI_ITS_Forward_table-FINAL.qza \
+  --o-merged-table Subset1-All_studies_merged_ITS1_table-FINAL.qza
+
+
+##For ITS2 region
+qiime feature-table merge \
+  --i-tables Dai_Y_2020_ITS_Forward_table-FINAL.qza \
+  --i-tables Chartrel_V_2020_ITS_Forward_table-FINAL.qza \
+  --i-tables Doherty_J_2020_ITS_Forward_table-FINAL.qza \
+  --i-tables Kim_H_2020_ITS_Forward_table-FINAL.qza \
+  --o-merged-table Subset1-All_studies_merged_ITS2_table-FINAL.qza
+
+
+
+
+
+
+qiime feature-table summarize \
+  --i-table Subset1-All_studies_merged_ITS_table-FINAL.qza \
+  --o-visualization Subset1-All_studies_merged_ITS_table-FINAL.qzv \
+  --m-sample-metadata-file Design_ITS_lab_data_mb.txt
+
+
+biom convert \
+   -i Subset1-All_studies_merged_ITS_table-FINAL.biom \
+   -o Subset1-All_studies_merged_ITS_table-FINAL.txt \
+   --to-tsv
+
+###Merge rarefied datasets Subset 2 - ITS1 region
+qiime feature-table merge \
+  --i-tables Vivanco_ITS_Forward_table-FINAL-rarefied.qza \
+  --i-tables Barret_M_2015_ITS_Forward_table-FINAL-rarefied.qza \
+  --i-tables BrassicaDivPatho_ITS_Forward_table-FINAL-rarefied.qza \
+  --i-tables Bnapus_Y2_ITS_Forward_table-FINAL-rarefied.qza \
+  --i-tables Bnapus_Y3_ITS_Forward_table-FINAL-rarefied.qza \
+  --i-tables Endowild_ITS_Forward_table-FINAL-rarefied.qza \
+  --i-tables Klaedtke_S_2016_ITS_Forward_table-FINAL-rarefied.qza \
+  --i-tables Prado_A_2019_ITS_Forward_table-FINAL-rarefied.qza \
+  --i-tables Rezki_S_2016_ITS_Forward_table-FINAL-rarefied.qza \
+  --i-tables Wassermann_B_2019_ITS_Forward_table-FINAL-rarefied.qza \
+  --i-tables AFRI_ITS_Forward_table-FINAL-rarefied.qza \
+  --i-tables Bintarti_F_2020_ITS_Forward_table-FINAL-rarefied.qza \
+  --i-tables Idbella_M_2020_ITS_Forward_table-FINAL-rarefied.qza \
+  --i-tables Huet_S_2020_ITS_Forward_table-FINAL-rarefied.qza\
+  --i-tables Abdelfattah_A_2020_ITS_Forward_table-FINAL-rarefied.qza \
+  --o-merged-table Subset2-ITS1region_table-FINAL-rarefied.qza
+
+
+
+##For ITS2 region
+qiime feature-table merge \
+  --i-tables Chartrel_V_2020_ITS_Forward_table-FINAL-rarefied.qza \
+  --i-tables Dai_Y_2020_ITS_Forward_table-FINAL-rarefied.qza \
+  --i-tables Doherty_J_2020_ITS_Forward_table-FINAL-rarefied.qza \
+  --i-tables Kim_H_2020_ITS_Forward_table-FINAL-rarefied.qza \
+  --o-merged-table Subset2-All_studies_merged_ITS2_table-FINAL.qza
+
+
+
+
+
+
+qiime feature-table summarize \
+  --i-table Subset2-ITS1region_table-FINAL-rarefied.qza \
+  --o-visualization Subset2-ITS1region_table-FINAL-rarefied.qzv \
+  --m-sample-metadata-file Design_ITS_lab_data_mb.txt
+
+qiime tools export \
+  --input-path Subset2-ITS1region_table-FINAL-rarefied.qza \
+  --output-path Final_output_files 
+
+biom convert \
+   -i Subset2-ITS1region_table-FINAL-rarefied.biom \
+   -o Subset2-ITS1region_table-FINAL-rarefied.txt \
+   --to-tsv
+
+
+
+### Merging representative sequences
+##For ITS1 
+qiime feature-table merge-seqs \
+  --i-data Barret_M_2015_ITS_Forward-rep-seqs-FINAL-rarefied.qza \
+  --i-data Bnapus_Y2_ITS_Forward-rep-seqs-FINAL-rarefied.qza \
+  --i-data Bnapus_Y3_ITS_Forward-rep-seqs-FINAL-rarefied.qza \
+  --i-data BrassicaDivPatho_ITS_Forward-rep-seqs-FINAL-rarefied.qza \
+  --i-data Endowild_ITS_Forward-rep-seqs-FINAL-rarefied.qza \
+  --i-data Klaedtke_S_2016_ITS_Forward-rep-seqs-FINAL-rarefied.qza \
+  --i-data Prado_A_2019_ITS_Forward-rep-seqs-FINAL-rarefied.qza \
+  --i-data Rezki_S_2016_ITS_Forward-rep-seqs-FINAL-rarefied.qza \
+  --i-data Vivanco_ITS_Forward-rep-seqs-FINAL-rarefied.qza \
+  --i-data Wassermann_B_2019_ITS_Forward-rep-seqs-FINAL-rarefied.qza \
+  --i-data Huet_S_2020_ITS_Forward-rep-seqs-FINAL-rarefied.qza \
+  --i-data Abdelfattah_A_2020_ITS_Forward-rep-seqs-FINAL-rarefied.qza \
+  --i-data Idbella_M_2020_ITS_Forward-rep-seqs-FINAL-rarefied.qza \
+  --i-data Bintarti_F_2020_ITS_Forward-rep-seqs-FINAL-rarefied.qza \
+  --i-data AFRI_ITS_Forward-rep-seqs-FINAL-rarefied.qza\
+  --o-merged-data Subset2-ITS1region-rep-seqs-FINAL-rarefied.qza
+
+##For ITS2
+qiime feature-table merge-seqs \
+  --i-data Chartrel_V_2020_ITS_Forward-rep-seqs-FINAL-rarefied.qza \
+  --i-data Dai_Y_2020_ITS_Forward-rep-seqs-FINAL-rarefied.qza \
+  --i-data Doherty_J_2020_ITS_Forward-rep-seqs-FINAL-rarefied.qza \
+  --i-data Kim_H_2020_ITS_Forward-rep-seqs-FINAL-rarefied.qza \
+  --o-merged-data Subset2-ITS2region-rep-seqs-FINAL-rarefied.qza
+
+
+
+
+qiime feature-table tabulate-seqs \
+  --i-data Subset2-ITS1region-rep-seqs-FINAL-rarefied.qza \
+  --o-visualization Subset2-ITS1region-rep-seqs-FINAL-rarefied.qzv
+qiime tools view Subset2-ITS1region-rep-seqs-FINAL-rarefied.qzv
+
+
+##For ITS1
+qiime feature-table merge-seqs \
+  --i-data Barret_M_2015_ITS_Forward-rep-seqs-FINAL.qza \
+  --i-data Bnapus_Y2_ITS_Forward-rep-seqs-FINAL.qza \
+  --i-data Bnapus_Y3_ITS_Forward-rep-seqs-FINAL.qza \
+  --i-data BrassicaDivPatho_ITS_Forward-rep-seqs-FINAL.qza \
+  --i-data Endowild_ITS_Forward-rep-seqs-FINAL.qza \
+  --i-data Klaedtke_S_2016_ITS_Forward-rep-seqs-FINAL.qza \
+  --i-data Prado_A_2019_ITS_Forward-rep-seqs-FINAL.qza \
+  --i-data Rezki_S_2016_ITS_Forward-rep-seqs-FINAL.qza \
+  --i-data Vivanco_ITS_Forward-rep-seqs-FINAL.qza \
+  --i-data Wassermann_B_2019_ITS_Forward-rep-seqs-FINAL.qza \
+  --i-data Huet_S_2020_ITS_Forward-rep-seqs-FINAL.qza \
+  --i-data Abdelfattah_A_2020_ITS_Forward-rep-seqs-FINAL.qza \
+  --i-data Idbella_M_2020_ITS_Forward-rep-seqs-FINAL.qza \
+  --i-data Bintarti_F_2020_ITS_Forward-rep-seqs-FINAL.qza \
+  --i-data AFRI_ITS_Forward-rep-seqs-FINAL.qza \
+  --o-merged-data Subset1-All_studies_merged_ITS1-rep-seqs-FINAL.qza
+
+
+
+##For ITS2
+qiime feature-table merge-seqs \
+  --i-data Chartrel_V_2020_ITS_Forward-rep-seqs-FINAL.qza \
+  --i-data Dai_Y_2020_ITS_Forward-rep-seqs-FINAL.qza \
+  --i-data Doherty_J_2020_ITS_Forward-rep-seqs-FINAL.qza \
+  --i-data Kim_H_2020_ITS_Forward-rep-seqs-FINAL.qza \
+  --o-merged-data Subset1-All_studies_merged_ITS2-rep-seqs-FINAL.qza
+
+
+
+
+
+qiime feature-table tabulate-seqs \
+  --i-data Subset1-All_studies_merged_ITS-rep-seqs-FINAL.qza \
+  --o-visualization Subset1-All_studies_merged_ITS-rep-seqs-FINAL.qzv
+qiime tools view Subset1-All_studies_merged_ITS-rep-seqs-FINAL.qzv
+
+########################################################################################
+#############################################################################################
+
+Preparation of SUBSET 3 - all studies with same rarefaction level
+
+#Make general NMDS and diversity analyses on all studies combined & Assign taxonomy to all SVs combined
+##Done in folder "qiime2_analysis_merged_ITS"
+source activate qiime2-2019.7
+
+##for ITS 1
+##Assign taxonomy to the SVs. 
+qiime feature-classifier classify-sklearn \
+  --i-classifier ~/Desktop/UNITE-ver8-99-classifier-04.02.2020.qza \
+  --i-reads Subset1-All_studies_merged_ITS1-rep-seqs-FINAL.qza \
+  --o-classification Subset1-All_studies_merged_ITS-rep-seqs-FINAL-taxonomy.qza \
+  --p-n-jobs 1 \
+  --verbose
+
+##for ITS 2
+##Assign taxonomy to the SVs. 
+qiime feature-classifier classify-sklearn \
+  --i-classifier ~/Desktop/UNITE-ver8-99-classifier-04.02.2020.qza \
+  --i-reads Subset1-All_studies_merged_ITS1-rep-seqs-FINAL.qza \
+  --o-classification Subset1-All_studies_merged_ITS1-rep-seqs-FINAL-taxonomy.qza \
+  --p-n-jobs 1 \
+  --verbose
+
+##Visualization of the taxonomy output
+
+qiime metadata tabulate \
+  --m-input-file Subset1-All_studies_merged_ITS1-rep-seqs-FINAL-taxonomy.qza \
+  --o-visualization Subset1-All_studies_merged_ITS1-rep-seqs-FINAL-taxonomy.qzv
+
+
+### Filter rare/low abundance ASVs and included haplotype
+
+qiime feature-table filter-features \
+  --i-table Subset1-All_studies_merged_ITS1_table-FINAL.qza \
+  --p-min-frequency 20 \
+  --p-min-samples 2 \
+  --o-filtered-table Subset1-All_studies_merged_ITS1_table-FINAL2-filtered.qza
+
+qiime feature-table summarize \
+  --i-table Subset1-All_studies_merged_ITS1_table-FINAL2-filtered.qza \
+  --o-visualization Subset1-All_studies_merged_ITS1_table-FINAL2-filtered.qzv \
+  --m-sample-metadata-file Design_ITS_lab_data_mb.txt
+
+
+###Filter the the rep-seq.qza to keep only SVs that are present in the filtered SV table 
+ qiime feature-table filter-seqs \
+  --i-data Subset1-All_studies_merged_ITS1-rep-seqs-FINAL.qza\
+  --i-table Subset1-All_studies_merged_ITS1_table-FINAL2-filtered.qza \
+  --o-filtered-data Subset1-All_studies_merged_ITS1-rep-seqs-FINAL-filtered.qza
+
+qiime feature-table tabulate-seqs \
+  --i-data Subset1-All_studies_merged_ITS1-rep-seqs-FINAL-filtered.qza \
+  --o-visualization Subset1-All_studies_merged_ITS1-rep-seqs-FINAL-filtered.qzv
+qiime tools view Subset1-All_studies_merged_ITS1-rep-seqs-FINAL-filtered.qzv
+
+
+
+###Export final Subset 1 filtered dataset
+
+qiime tools export \
+  --input-path Subset1-All_studies_merged_ITS1_table-FINAL2-filtered.qza \
+  --output-path Final_output_files 
+
+ qiime tools export \
+   --input-path Subset1-All_studies_merged_ITS1-rep-seqs-FINAL-filtered.qza \
+   --output-path Final_output_files
+
+cd Final_output_files
+biom convert \
+   -i Subset1-All_studies_merged_ITS1_table-FINAL2-filtered.biom \
+   -o Subset1-All_studies_merged_ITS1_table-FINAL2-filtered.txt \
+   --to-tsv
+
+
+#Identification des haplotypes inclus dans un autre -> aucun pour ITS (juste ASV avec une base d'écart)
+##ITS
+perl searchIncludedHaplotypes.pl -hf Subset1-All_studies_merged_ITS1-rep-seqs-FINAL-filtered.fasta -o ITS1_Subset1_result.tab
+
+
+
+
+
+## Export rarefied datasets = SUBSET 3 (same rarefaction at 1000 reads/sample for all studies)
+## Choose rarefaction level and rarefy the table
+qiime feature-table rarefy \
+  --i-table Subset1-All_studies_merged_ITS1_table-FINAL2-filtered.qza \
+  --p-sampling-depth 1050 \
+  --o-rarefied-table Subset3-ITS1_table-FINAL-rarefied.qza
+
+
+
+### 9. Summary after rarefaction and export SV table and rep seqs fasta file + taxonomy
+
+qiime feature-table summarize \
+  --i-table Subset3-ITS1_table-FINAL-rarefied.qza \
+  --o-visualization Subset3-ITS1_table-FINAL-rarefied.qzv \
+  --m-sample-metadata-file Design_ITS_lab_data_mb.txt
+
+###Filter the the rep-seq.qza to keep only SVs that are present in the rarefied SV table 
+ qiime feature-table filter-seqs \
+  --i-data Subset1-All_studies_merged_ITS1-rep-seqs-FINAL-filtered.qza\
+  --i-table Subset3-ITS1_table-FINAL-rarefied.qza \
+  --o-filtered-data Subset3_ITS1_rep-seq-FINAL-rarefied.qza
+
+qiime feature-table tabulate-seqs \
+  --i-data Subset3_ITS1_rep-seq-FINAL-rarefied.qza \
+  --o-visualization Subset3_ITS1_rep-seq-FINAL-rarefied.qzv
+qiime tools view Subset3_ITS_rep-seq-FINAL-rarefied.qzv
+
+
+
+
+## Export Representative sequences for rarefied datasets
+qiime tools export \
+   --input-path Subset3_ITS1_rep-seq-FINAL-rarefied.qza \
+   --output-path Final_output_files 
+ 
+
+## Export SV tables for rarefied datasets 
+qiime tools export \
+  --input-path Subset3-ITS1_table-FINAL-rarefied.qza \
+  --output-path Final_output_files 
+
+cd Final_output_files /
+biom convert \
+   -i Subset3-ITS1_table-FINAL-rarefied.biom \
+   -o Subset3-ITS1_table-FINAL-rarefied.txt \
+   --to-tsv
+
+
+
+
+## Make phylogenetic tree on non-rarefied and rarefied dataset  --- TO EDIT WITH GHOST TREE
+### in Qiime2 Make Phylogenetic tree (on all SVs ) 
+
+qiime phylogeny align-to-tree-mafft-fasttree \
+  --i-sequences Subset1-All_studies_merged_ITS1-rep-seqs-FINAL-filtered.qza \
+  --o-alignment Subset1-All_studies_merged_ITS1-rep-seqs-FINAL-aligned.qza \
+  --o-masked-alignment Subset1-All_studies_merged_ITS1-rep-seqs-FINAL-masked-aligned-rep-seqs.qza \
+  --o-tree Subset1-All_studies_merged_ITS1-rep-seqs-FINAL-unrooted-tree.qza \
+  --o-rooted-tree Subset1-All_studies_merged_ITS1-rep-seqs-FINAL-rooted-tree.qza
+
+
+### Calculate alpha and beta diversity index - change rarefaction level for each study
+
+qiime diversity core-metrics-phylogenetic \
+  --i-table Subset1-All_studies_merged_ITS1_table-FINAL2-filtered.qza \
+  --i-phylogeny Subset1-All_studies_merged_ITS1-rep-seqs-FINAL-rooted-tree.qza \
+  --m-metadata-file Design_ITS_lab_data_mb.txt \
+  --p-sampling-depth 1050 \
+  --output-dir ./diversity-metrics-results-Subset3
+
+qiime diversity alpha-group-significance \
+   --i-alpha-diversity diversity-metrics-results-Subset3/observed_otus_vector.qza \
+   --m-metadata-file Design_ITS_lab_data_mb.txt \
+   --o-visualization diversity-metrics-results-Subset3/observed_otus_compare_groups.qzv
+
+
+
+  ### Check taxonomy bar graph
+qiime taxa barplot \
+  --i-table Subset1-All_studies_merged_ITS1_table-FINAL2-filtered.qza \
+  --i-taxonomy Subset1-All_studies_merged_ITS1-rep-seqs-FINAL-taxonomy.qza \
+  --m-metadata-file Design_ITS_lab_data_mb.txt \
+  --o-visualization Subset1-All_studies_merged_ITS1_table-FINAL-bargraph.qzv
+
+
+###Permanova use option --p-pairwise  or --p-no-pairwise
+cd diversity-metrics-results-Subset3
+qiime diversity beta-group-significance \
+  --i-distance-matrix bray_curtis_distance_matrix.qza \
+  --m-metadata-file ../Design_ITS_lab_data_mb.txt \
+  --m-metadata-column Study_ID \
+  --o-visualization bray_curtis_distance_matrix_permanova.qzv \
+  --p-no-pairwise
+
+ # Run plugin for each alpha diversity result
+for result in *vector.qza; \
+do \
+outname=${result/_vector.qza/_group_significance.qzv}; \
+qiime diversity alpha-group-significance \
+--i-alpha-diversity $result \
+--m-metadata-file ../Design_ITS_lab_data_mb.txt \
+--o-visualization $outname; \
+done
+
+
+
+
+
+###Other steps - optional
+
+
+####Export trees
+qiime tools export \
+  --input-path BrassicaDivPatho-ITS-unrooted-tree-rarefied.qza \
+  --output-path exported-tree-ITS
+
+qiime tools export \
+  --input-path BrassicaDivPatho-ITS-rooted-tree-rarefied.qza \
+  --output-path exported-tree-ITS
+
+##Picrust Standalone ## WORKS!!
+source activate Picrust2
+picrust2_pipeline.py -s WV-rep-seqs-filtered.fasta -i WV_table-noplant-filtered-rarefied.biom -o picrust2_out_pipeline -p 8

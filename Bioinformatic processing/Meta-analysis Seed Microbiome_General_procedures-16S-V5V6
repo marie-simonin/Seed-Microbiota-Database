@@ -1,0 +1,605 @@
+# Meta-analysis Seed Microbiome
+#### Marie Simonin
+### 16 December 2019
+
+
+# Procedure for downloading and processing amplicon sequence data from the literature - FOR PAIRED END DATA
+
+
+## 1. Dowloading the raw sequence data from ENA 
+https://www.ebi.ac.uk/ena
+1. enter the accession number in the search engine
+
+2. Download a txt file that contains metadata and ftp links (for downloading fastqs) by clicking on TEXT in the Read Files tab on the submission
+This tab takes sometimes a little bit of time to appear between the Navigation and Attributes tabs.
+To be sure that you have all the metadata, you can click on "select columns" before downloading the txt file and select more columns that could be relevant for metadata (sample names, library names...)
+
+3. Open the txt file and select all the ftp links present in the "fastq_ftp" column
+
+4. Open a terminal and use wget to download the fastq files with these ftp links : example below
+
+wget ftp.sra.ebi.ac.uk/vol1/fastq/ERR286/004/ERR2862034/ERR2862034.fastq.gz
+
+#### Verify if some of the fastq.gz files are corrupted
+gzip -t *.gz
+
+#####################################################
+ V5-V6 :  target zone  799F - 1114R (~ 315 bp) : 
+Trimming to the forward 799F primer and then joining reads. DADA2 on single end with trimming at 315 bp to maximize the number of studies included
+
+
+## Importing raw sequences in qiime2 - quality check and trimming to V4 region
+source activate qiime2-2019.7
+export PATH=/Users/msimonin/miniconda3/envs/qiime2-2019.7/bin:$PATH
+
+###Importing data with Casava format (ex: eDNA1012_S50_L001_R1_001.fastq.gz)
+qiime tools import \
+  --type 'SampleData[PairedEndSequencesWithQuality]' \
+  --input-path '16S' \
+  --input-format CasavaOneEightSingleLanePerSampleDirFmt \
+  --output-path Mitter_B_2017_16S.qza
+
+
+  ### Quality Check
+qiime demux summarize \
+ --i-data Mitter_B_2017_16S.qza \
+ --o-visualization Mitter_B_2017_16S.qzv
+qiime tools view Mitter_B_2017_16S.qzv
+
+##Trimming primers
+qiime cutadapt trim-paired --i-demultiplexed-sequences Mitter_B_2017_16S.qza --p-front-f AACMGGATTAGATACCCKG  --o-trimmed-sequences Mitter_B_2017_16S-trimmed.qza --discard-untrimmed
+
+##Check trimming
+qiime demux summarize \
+ --i-data Mitter_B_2017_16S-trimmed.qza \
+ --o-visualization Mitter_B_2017_16S-trimmed.qzv
+qiime tools view Mitter_B_2017_16S-trimmed.qzv
+
+
+##Joining reads
+qiime vsearch join-pairs \
+  --i-demultiplexed-seqs Mitter_B_2017_16S-trimmed.qza \
+  --o-joined-sequences Mitter_B_2017_16S-trimmed-joined.qza
+
+##Check joining
+qiime demux summarize \
+ --i-data Mitter_B_2017_16S-trimmed-joined.qza \
+ --o-visualization Mitter_B_2017_16S-trimmed-joined.qzv
+qiime tools view Mitter_B_2017_16S-trimmed-joined.qzv
+
+###Need to re-import data using a manifest file because the SampleData[JoinedSequencesWithQuality] format is not accepted by DADA2
+
+qiime tools import \
+  --type 'SampleData[SequencesWithQuality]' \
+  --input-path Mitter_B_2017_manifest.csv \
+  --output-path Mitter_B_2017_16S_final.qza \
+  --input-format SingleEndFastqManifestPhred33
+
+  ### Quality Check
+qiime demux summarize \
+ --i-data Mitter_B_2017_16S_final.qza \
+ --o-visualization Mitter_B_2017_16S_final.qzv
+qiime tools view Mitter_B_2017_16S_final.qzv
+# check for Qiime2 view for quality and verify length, and confirm that pair-ending worked.
+
+
+
+#########
+### DADA2 to identify ESVs. We ran this analysis on each independent study separately and merged the ESV tables and representative sequences afterwards (see merging steps below in Qiime 2)
+
+qiime dada2 denoise-single \
+  --i-demultiplexed-seqs Mitter_B_2017_16S_final.qza \
+  --p-trim-left 0 \
+  --p-trunc-len 315 \
+  --p-n-threads 4 \
+  --o-representative-sequences Mitter_B_2017_16S_repseqs.qza \
+  --o-table Mitter_B_2017_16S_table.qza \
+  --o-denoising-stats Mitter_B_2017_16S_denoisestats.qza \
+  --verbose
+
+
+
+qiime metadata tabulate \
+  --m-input-file Mitter_B_2017_16S_denoisestats.qza \
+  --o-visualization Mitter_B_2017_16S_denoising-stats.qzv
+qiime tools view Mitter_B_2017_16S_denoising-stats.qzv
+# look for any substantial drops
+
+qiime feature-table summarize \
+  --i-table Mitter_B_2017_16S_table.qza \
+  --o-visualization Mitter_B_2017_16S_table.qzv \
+  --m-sample-metadata-file Mitter_B_2017_16S_metadata.txt
+qiime tools view Mitter_B_2017_16S_table.qzv
+# Verify number of samples, and sequencing depth.
+
+qiime feature-table tabulate-seqs \
+  --i-data Mitter_B_2017_16S_repseqs.qza \
+  --o-visualization Mitter_B_2017_16S-rep-seqs.qzv
+qiime tools view Mitter_B_2017_16S-rep-seqs.qzv
+# Sequence length, and should start with “TAC….”, and number of SVs.
+
+###5.Assign taxonomy to the SVs. Download pretrained classifier for the V4 region (Silva 132 99% OTUs from 515F/806R region of sequences) based on the SILVA database: https://docs.qiime2.org/2019.1/data-resources/
+###To create the classifier based on your own parameters (fragment size, region) follow this tutorial, for now we will use the pre-trained classifier for the V4 region (515F-806R) at 99% similarity: https://docs.qiime2.org/2019.1/tutorials/feature-classifier/
+
+source activate qiime2-2019.7
+
+
+qiime feature-classifier classify-sklearn \
+  --i-classifier ~/Desktop/silva-132-99-nb-classifier.qza \
+  --i-reads Mitter_B_2017_16S_repseqs.qza \
+  --o-classification Mitter_B_2017_16S-rep-seqs-taxonomy.qza \
+  --p-n-jobs 1 \
+  --verbose
+
+##Visualization of the taxonomy output
+
+qiime metadata tabulate \
+  --m-input-file Mitter_B_2017_16S-rep-seqs-taxonomy.qza \
+  --o-visualization Mitter_B_2017_16S-rep-seqs-taxonomy.qzv
+
+
+
+
+##6.Remove SVs in the table that are Chloroplast or Mitochondria (not bacterial or archaeal taxa)
+
+qiime taxa filter-table \
+  --i-table Mitter_B_2017_16S_table.qza \
+  --i-taxonomy Mitter_B_2017_16S-rep-seqs-taxonomy.qza \
+  --p-exclude mitochondria,chloroplast \
+  --o-filtered-table Mitter_B_2017_16S_table-noplant.qza
+
+qiime feature-table summarize \
+  --i-table Mitter_B_2017_16S_table-noplant.qza \
+  --o-visualization Mitter_B_2017_16S_table-noplant.qzv \
+  --m-sample-metadata-file Mitter_B_2017_16S_metadata.txt
+
+##Remove Unassigned and Eukaryotes reads
+
+qiime taxa filter-table \
+  --i-table Mitter_B_2017_16S_table-noplant.qza \
+  --i-taxonomy Mitter_B_2017_16S-rep-seqs-taxonomy.qza \
+  --p-exclude D_0__Eukaryota,Unassigned \
+  --o-filtered-table Mitter_B_2017_16S_table-noplant-nofun.qza
+
+
+
+
+##7.Possible filtering/cleaning steps 
+
+###Remove samples with low read counts
+
+qiime feature-table filter-samples \
+  --i-table Mitter_B_2017_16S_table-noplant-nofun.qza \
+  --p-min-frequency 1000 \
+  --o-filtered-table Mitter_B_2017_16S_table-noplant-filtered-table.qza
+
+## Keep only seed samples
+qiime feature-table filter-samples \
+  --i-table Mitter_B_2017_16S_table-noplant-filtered-table.qza \
+  --m-metadata-file Mitter_B_2017_16S_metadata.txt \
+  --p-where "Habitat='Seed'" \
+  --o-filtered-table Mitter_B_2017_16S_table-FINAL.qza
+
+qiime feature-table summarize \
+  --i-table Mitter_B_2017_16S_table-FINAL.qza \
+  --o-visualization Mitter_B_2017_16S_table-FINAL.qzv \
+  --m-sample-metadata-file Mitter_B_2017_16S_metadata.txt
+
+##Filter the the rep-seq.qza to keep only SVs that are present in the final SV table (remove SVs that were Chloroplast, Mitochondria )
+source activate qiime2-2019.7
+
+qiime feature-table filter-seqs \
+  --i-data Mitter_B_2017_16S_repseqs.qza \
+  --i-table Mitter_B_2017_16S_table-FINAL.qza \
+  --o-filtered-data Mitter_B_2017_16S-rep-seqs-FINAL.qza
+
+qiime feature-table tabulate-seqs \
+  --i-data Mitter_B_2017_16S-rep-seqs-FINAL.qza \
+  --o-visualization Mitter_B_2017_16S-rep-seqs-FINAL.qzv
+qiime tools view Mitter_B_2017_16S-rep-seqs-FINAL.qzv
+
+
+## 8. Check rarefaction curves and rarefy dataset
+
+## Check rarefaction curves - change pmax-depth depending on the dataset
+qiime diversity alpha-rarefaction \
+  --i-table Mitter_B_2017_16S_table-FINAL.qza \
+  --m-metadata-file Mitter_B_2017_16S_metadata.txt \
+  --o-visualization Mitter_B_2017_16S_alpha_rarefaction_curves.qzv \
+  --p-min-depth 1061 \
+  --p-max-depth 25124
+
+qiime diversity alpha-rarefaction \
+   --i-table Mitter_B_2017_16S_table-FINAL.qza \
+   --p-max-depth 25124 \
+   --p-steps 20 \
+   --o-visualization Mitter_B_2017_16S_rarefaction_curves_eachsample.qzv
+
+## Choose rarefaction level and rarefy the table
+qiime feature-table rarefy \
+  --i-table Mitter_B_2017_16S_table-FINAL.qza \
+  --p-sampling-depth 1061 \
+  --o-rarefied-table Mitter_B_2017_16S_table-FINAL-rarefied.qza
+
+
+
+### 9. Summary after rarefaction and export SV table and rep seqs fasta file + taxonomy
+
+qiime feature-table summarize \
+  --i-table Mitter_B_2017_16S_table-FINAL-rarefied.qza \
+  --o-visualization Mitter_B_2017_16S_table-FINAL-rarefied.qzv \
+  --m-sample-metadata-file Mitter_B_2017_16S_metadata.txt
+
+###Filter the the rep-seq.qza to keep only SVs that are present in the rarefied SV table 
+ qiime feature-table filter-seqs \
+  --i-data Mitter_B_2017_16S_repseqs.qza \
+  --i-table Mitter_B_2017_16S_table-FINAL-rarefied.qza \
+  --o-filtered-data Mitter_B_2017_16S-rep-seqs-FINAL-rarefied.qza
+
+
+
+## Export Representative sequences for unrarefied and rarefied datasets
+qiime tools export \
+   --input-path Mitter_B_2017_16S-rep-seqs-FINAL-rarefied.qza \
+   --output-path 16S_Final_output_files 
+ 
+
+  qiime tools export \
+   --input-path Mitter_B_2017_16S-rep-seqs-FINAL.qza \
+   --output-path 16S_Final_output_files
+
+## Export SV tables for unrarefied and rarefied datasets 
+qiime tools export \
+  --input-path Mitter_B_2017_16S_table-FINAL-rarefied.qza \
+  --output-path 16S_Final_output_files 
+
+qiime tools export \
+  --input-path Mitter_B_2017_16S_table-FINAL.qza \
+  --output-path 16S_Final_output_files 
+
+cd 16S_Final_output_files/
+biom convert \
+   -i Mitter_B_2017_16S_table-FINAL-rarefied.biom \
+   -o Mitter_B_2017_16S_table-FINAL-rarefied.txt \
+   --to-tsv
+
+biom convert \
+   -i Mitter_B_2017_16S_table-FINAL.biom \
+   -o Mitter_B_2017_16S_table-FINAL.txt \
+   --to-tsv
+
+
+
+
+## 10. Make phylogenetic tree on non-rarefied and rarefied dataset
+### in Qiime2 Make Phylogenetic tree (on all SVs or rarefied SVs) 
+
+qiime phylogeny align-to-tree-mafft-fasttree \
+  --i-sequences Mitter_B_2017_16S-rep-seqs-FINAL.qza \
+  --o-alignment Mitter_B_2017_16S-rep-seqs-FINAL-aligned.qza \
+  --o-masked-alignment Mitter_B_2017_16S-rarefied-masked-aligned-rep-seqs.qza \
+  --o-tree Mitter_B_2017_16S-16S-unrooted-tree.qza \
+  --o-rooted-tree Mitter_B_2017_16S-16S-rooted-tree.qza
+
+
+## 11. Calculate alpha and beta diversity index - change rarefaction level for each study
+
+qiime diversity core-metrics-phylogenetic \
+  --i-table Mitter_B_2017_16S_table-FINAL.qza \
+  --i-phylogeny Mitter_B_2017_16S-16S-rooted-tree.qza \
+  --m-metadata-file Mitter_B_2017_16S_metadata.txt \
+  --p-sampling-depth 1061 \
+  --output-dir ./diversity-metrics-results
+
+qiime diversity alpha-group-significance \
+   --i-alpha-diversity diversity-metrics-results/observed_otus_vector.qza \
+   --m-metadata-file ~/Desktop/Meta_analysis/Mitter_B_2017/Mitter_B_2017_16S_metadata.txt \
+   --o-visualization diversity-metrics-results/observed_otus_compare_groups.qzv
+
+
+  ## 12. Check taxonomy bar graph
+qiime taxa barplot \
+  --i-table Mitter_B_2017_16S_table-FINAL-rarefied.qza \
+  --i-taxonomy Mitter_B_2017_16S-rep-seqs-taxonomy.qza \
+  --m-metadata-file Mitter_B_2017_16S_metadata.txt \
+  --o-visualization Mitter_B_2017_16S_taxa_barplot_rarefied.qzv
+
+
+
+
+
+
+############################################################################
+
+
+##13. Merging different datasets (rep-seq, tables)
+
+####Merging SV tables
+##New merge with new 16S data (all V4 datasets) - April 2020 - SUBSET 1 (unrarefied)
+source activate qiime2-2019.7
+
+qiime feature-table merge \
+  --i-tables Bakker_M_2019_16S_table-FINAL.qza \
+  --i-tables Escobar_C_2018_16S_table-FINAL.qza \
+  --i-tables Escobar_C_2019_16S_table-FINAL.qza \
+  --i-tables Liu_Y_2019_16S_table-FINAL.qza \
+  --i-tables Mitter_B_2017_16S_table-FINAL.qza \
+  --o-merged-table Subset1-All_studies_merged_16S_table-FINAL-V5V6-MiSeq.qza
+
+
+qiime feature-table summarize \
+  --i-table Subset1-All_studies_merged_16S_table-FINAL-V5V6-MiSeq.qza \
+  --o-visualization Subset1-All_studies_merged_16S_table-FINAL-V5V6-MiSeq.qzv \
+  --m-sample-metadata-file Subset1-All-studies-merged-metadata-16S_V5V6_MiSeq.txt
+
+
+biom convert \
+   -i Subset1-All_studies_merged_16S_table-FINAL-V5V6-MiSeq.biom \
+   -o Subset1-All_studies_merged_16S_table-FINAL-V5V6-MiSeq.txt \
+   --to-tsv
+
+## Merging SV tables rarefied by study - SUBSET 2
+
+qiime feature-table merge \
+  --i-tables Bakker_M_2019_16S_table-FINAL-rarefied.qza \
+  --i-tables Escobar_C_2018_16S_table-FINAL-rarefied.qza \
+  --i-tables Escobar_C_2019_16S_table-FINAL-rarefied.qza \
+  --i-tables Liu_Y_2019_16S_table-FINAL-rarefied.qza \
+  --i-tables Mitter_B_2017_16S_table-FINAL-rarefied.qza \
+  --o-merged-table Subset2-All_studies_merged_16S_table-FINAL-V5V6-MiSeq-rarefied.qza
+
+
+qiime feature-table summarize \
+  --i-table Subset2-All_studies_merged_16S_table-FINAL-V5V6-MiSeq-rarefied.qza \
+  --o-visualization Subset2-All_studies_merged_16S_table-FINAL-V5V6-MiSeq-rarefied.qzv \
+  --m-sample-metadata-file Subset1-All-studies-merged-metadata-16S_V5V6_MiSeq.txt
+
+biom convert \
+   -i Subset2-All_studies_merged_16S_table-FINAL-V5V6-MiSeq-rarefied.biom \
+   -o Subset2-All_studies_merged_16S_table-FINAL-V5V6-MiSeq-rarefied.txt \
+   --to-tsv
+
+
+### Merging representative sequences
+
+qiime feature-table merge-seqs \
+  --i-data Bakker_M_2019_16S-rep-seqs-FINAL-rarefied.qza \
+  --i-data Escobar_C_2018_16S-rep-seqs-FINAL-rarefied.qza \
+  --i-data Escobar_C_2019_16S-rep-seqs-FINAL-rarefied.qza \
+  --i-data Liu_Y_2019_16S-rep-seqs-FINAL-rarefied.qza \
+  --i-data Mitter_B_2017_16S-rep-seqs-FINAL-rarefied.qza \
+  --o-merged-data Subset2-All_studies_merged_16S-rep-seqs-FINAL-V5V6-MiSeq-rarefied.qza
+
+
+qiime feature-table tabulate-seqs \
+  --i-data Subset2-All_studies_merged_16S-rep-seqs-FINAL-V5V6-MiSeq-rarefied.qza \
+  --o-visualization Subset2-All_studies_merged_16S-rep-seqs-FINAL-V5V6-MiSeq-rarefied.qzv
+qiime tools view Subset2-All_studies_merged_16S-rep-seqs-FINAL-V5V6-MiSeq-rarefied.qzv
+
+
+
+qiime feature-table merge-seqs \
+  --i-data Bakker_M_2019_16S-rep-seqs-FINAL.qza \
+  --i-data Escobar_C_2018_16S-rep-seqs-FINAL.qza \
+  --i-data Escobar_C_2019_16S-rep-seqs-FINAL.qza \
+  --i-data Liu_Y_2019_16S-rep-seqs-FINAL.qza \
+  --i-data Mitter_B_2017_16S-rep-seqs-FINAL.qza \
+  --o-merged-data Subset1-All_studies_merged_16S-rep-seqs-FINAL-V5V6-MiSeq.qza
+
+
+qiime feature-table tabulate-seqs \
+  --i-data Subset1-All_studies_merged_16S-rep-seqs-FINAL-V5V6-MiSeq.qza \
+  --o-visualization Subset1-All_studies_merged_16S-rep-seqs-FINAL-V5V6-MiSeq.qzv
+qiime tools view Subset1-All_studies_merged_16S-rep-seqs-FINAL-V5V6-MiSeq.qzv
+
+
+# Merging metadata txt files - works if the header is the same in all files
+####Might be necessary to run first: chmod +x Merging_txt_files.sh 
+./Merging_txt_files.sh 
+
+
+
+
+#############################################################################################
+
+Preparation of SUBSET 3 - all studies with same rarefaction level
+
+#Make general NMDS and diversity analyses on all studies combined & Assign taxonomy to all SVs combined
+##Done in folder "qiime2_analysis_merged_ITS"
+source activate qiime2-2019.7
+
+##Assign taxonomy to the SVs. 
+
+qiime feature-classifier classify-sklearn \
+  --i-classifier ~/Desktop/silva-132-99-nb-classifier.qza \
+  --i-reads Subset1-All_studies_merged_16S-rep-seqs-FINAL-V5V6-MiSeq.qza \
+  --o-classification Subset1-All_studies_merged_16S_table-FINAL-V5V6-MiSeq-taxonomy.qza \
+  --p-n-jobs 1 \
+  --verbose
+
+##Visualization of the taxonomy output
+
+qiime metadata tabulate \
+  --m-input-file Subset1-All_studies_merged_16S_table-FINAL-V5V6-MiSeq-taxonomy.qza \
+  --o-visualization Subset1-All_studies_merged_16S_table-FINAL-V5V6-MiSeq-taxonomy.qzv
+
+
+### Filter rare/low abundance ASVs and included haplotype
+
+qiime feature-table filter-features \
+  --i-table Subset1-All_studies_merged_16S_table-FINAL-V5V6-MiSeq.qza \
+  --p-min-frequency 20 \
+  --p-min-samples 2 \
+  --o-filtered-table Subset1-All_studies_merged_16S_table-FINAL-V5V6-MiSeq2-filtered.qza
+
+qiime feature-table summarize \
+  --i-table Subset1-All_studies_merged_16S_table-FINAL-V5V6-MiSeq2-filtered.qza \
+  --o-visualization Subset1-All_studies_merged_16S_table-FINAL-V5V6-MiSeq2-filtered.qzv \
+  --m-sample-metadata-file Subset1-All-studies-merged-metadata-16S_V5V6_MiSeq.txt
+
+
+###Filter the the rep-seq.qza to keep only SVs that are present in the filtered SV table 
+ qiime feature-table filter-seqs \
+  --i-data Subset1-All_studies_merged_16S-rep-seqs-FINAL-V5V6-MiSeq.qza\
+  --i-table Subset1-All_studies_merged_16S_table-FINAL-V5V6-MiSeq2-filtered.qza \
+  --o-filtered-data Subset1-All_studies_merged_16S-rep-seqs-FINAL-V5V6-MiSeq-filtered.qza
+
+qiime feature-table tabulate-seqs \
+  --i-data Subset1-All_studies_merged_16S-rep-seqs-FINAL-V5V6-MiSeq-filtered.qza \
+  --o-visualization Subset1-All_studies_merged_16S-rep-seqs-FINAL-V5V6-MiSeq-filtered.qzv
+qiime tools view Subset1-All_studies_merged_16S-rep-seqs-FINAL-V5V6-MiSeq-filtered.qzv
+
+
+
+###Export final Subset 1 filtered dataset
+
+qiime tools export \
+  --input-path Subset1-All_studies_merged_16S_table-FINAL-V5V6-MiSeq2-filtered.qza \
+  --output-path Final_output_files 
+
+ qiime tools export \
+   --input-path Subset1-All_studies_merged_16S-rep-seqs-FINAL-V5V6-MiSeq-filtered.qza \
+   --output-path Final_output_files
+
+cd Final_output_files
+biom convert \
+   -i Subset1-All_studies_merged_16S_table-FINAL-V5V6-MiSeq2-filtered.biom \
+   -o Subset1-All_studies_merged_16S_table-FINAL-V5V6-MiSeq2-filtered.txt \
+   --to-tsv
+
+
+
+## Export rarefied datasets = SUBSET 3 (same rarefaction at 1000 reads/sample for all studies)
+## Choose rarefaction level and rarefy the table
+qiime feature-table rarefy \
+  --i-table Subset1-All_studies_merged_16S_table-FINAL-V5V6-MiSeq2-filtered.qza \
+  --p-sampling-depth 1056 \
+  --o-rarefied-table Subset3-16S-V5V6-table-FINAL-rarefied.qza
+
+
+
+### 9. Summary after rarefaction and export SV table and rep seqs fasta file + taxonomy
+
+qiime feature-table summarize \
+  --i-table Subset3-16S-V5V6-table-FINAL-rarefied.qza \
+  --o-visualization Subset3-16S-V5V6-table-FINAL-rarefied.qzv \
+  --m-sample-metadata-file Subset1-All-studies-merged-metadata-16S_V5V6_MiSeq.txt
+
+###Filter the the rep-seq.qza to keep only SVs that are present in the rarefied SV table 
+ qiime feature-table filter-seqs \
+  --i-data Subset1-All_studies_merged_16S-rep-seqs-FINAL-V5V6-MiSeq.qza\
+  --i-table Subset3-16S-V5V6-table-FINAL-rarefied.qza \
+  --o-filtered-data Subset3_16S_V5V6_rep-seq-FINAL-rarefied.qza
+
+qiime feature-table tabulate-seqs \
+  --i-data Subset3_16S_V5V6_rep-seq-FINAL-rarefied.qza \
+  --o-visualization Subset3_16S_V5V6_rep-seq-FINAL-rarefied.qzv
+qiime tools view Subset3_16S_V5V6_rep-seq-FINAL-rarefied.qzv
+
+
+
+
+## Export Representative sequences for rarefied datasets
+qiime tools export \
+   --input-path Subset3_16S_V5V6_rep-seq-FINAL-rarefied.qza \
+   --output-path Final_output_files 
+ 
+
+## Export SV tables for rarefied datasets 
+qiime tools export \
+  --input-path Subset3-16S-V5V6-table-FINAL-rarefied.qza \
+  --output-path Final_output_files 
+
+cd Final_output_files /
+biom convert \
+   -i Subset3-16S-V5V6-table-FINAL-rarefied.biom \
+   -o Subset3-16S-V5V6-table-FINAL-rarefied.txt \
+   --to-tsv
+
+
+
+
+## Make phylogenetic tree on non-rarefied and rarefied dataset  
+### in Qiime2 Make Phylogenetic tree (on all SVs ) 
+
+qiime phylogeny align-to-tree-mafft-fasttree \
+  --i-sequences Subset1-All_studies_merged_16S-rep-seqs-FINAL-V5V6-MiSeq.qza \
+  --o-alignment Subset1-All_studies_merged_16S-rep-seqs-FINAL-V5V6-aligned.qza \
+  --o-masked-alignment Subset1-All_studies_merged_16S-rep-seqs-FINAL-V5V6-masked-aligned.qza \
+  --o-tree Subset1-All_studies_merged_16S-rep-seqs-FINAL-V5V6-MiSeq-unrooted-tree.qza \
+  --o-rooted-tree Subset1-All_studies_merged_16S-rep-seqs-FINAL-V5V6-MiSeq-rooted-tree.qza
+
+
+### Calculate alpha and beta diversity index - change rarefaction level for each study
+
+qiime diversity core-metrics-phylogenetic \
+  --i-table Subset1-All_studies_merged_16S_table-FINAL-V5V6-MiSeq.qza \
+  --i-phylogeny Subset1-All_studies_merged_16S-rep-seqs-FINAL-V5V6-MiSeq-rooted-tree.qza \
+  --m-metadata-file Subset1-All-studies-merged-metadata-16S_V5V6_MiSeq.txt \
+  --p-sampling-depth 1056 \
+  --output-dir ./diversity-metrics-results-Subset3
+
+qiime diversity alpha-group-significance \
+   --i-alpha-diversity diversity-metrics-results-Subset3/observed_otus_vector.qza \
+   --m-metadata-file Subset1-All-studies-merged-metadata-16S_V5V6_MiSeq.txt \
+   --o-visualization diversity-metrics-results-Subset3/observed_otus_compare_groups.qzv
+
+
+
+  ### Check taxonomy bar graph
+qiime taxa barplot \
+  --i-table Subset1-All_studies_merged_16S_table-FINAL-V5V6-MiSeq.qza \
+  --i-taxonomy Subset1-All_studies_merged_16S_table-FINAL-V5V6-MiSeq-taxonomy.qza \
+  --m-metadata-file Subset1-All-studies-merged-metadata-16S_V5V6_MiSeq.txt \
+  --o-visualization Subset1-All_studies_merged_16S_table-FINAL-V5V6-MiSeq.qza-bargraph.qzv
+
+
+###Permanova use option --p-pairwise  or --p-no-pairwise
+cd diversity-metrics-results-Subset3
+qiime diversity beta-group-significance \
+  --i-distance-matrix bray_curtis_distance_matrix.qza \
+  --m-metadata-file ../Subset1-All-studies-merged-metadata-16S_V5V6_MiSeq.txt \
+  --m-metadata-column Study_ID \
+  --o-visualization bray_curtis_distance_matrix_permanova.qzv \
+  --p-no-pairwise
+
+ # Run plugin for each alpha diversity result
+for result in *vector.qza; \
+do \
+outname=${result/_vector.qza/_group_significance.qzv}; \
+qiime diversity alpha-group-significance \
+--i-alpha-diversity $result \
+--m-metadata-file ../Subset1-All-studies-merged-metadata-16S_V5V6_MiSeq.txt \
+--o-visualization $outname; \
+done
+
+
+
+
+
+# Diversity results generated by study - export results and merge all study results in 1 file
+### Extraction diversity result by study from zip files (ex qza)
+## Transform the qza in zip files (control f)
+##might be necessary to run: chmod +x diversity-index-extraction-script.sh 
+## copy the script in "extraction" folder and execute the script - it will create a txt file with all div results
+##Run the following command to execute the script - don't forget to change the name of the 1st file in the script
+./diversity-index-extraction-script.sh 
+
+
+
+
+
+
+
+###Other steps - optional
+
+
+####Export trees
+qiime tools export \
+  --input-path BrassicaDivPatho-16S-unrooted-tree-rarefied.qza \
+  --output-path exported-tree-16S
+
+qiime tools export \
+  --input-path BrassicaDivPatho-16S-rooted-tree-rarefied.qza \
+  --output-path exported-tree-16S
+

@@ -1,0 +1,830 @@
+# Meta-analysis Seed Microbiome
+#### Marie Simonin
+### 16 December 2019
+
+
+# Procedure for downloading and processing amplicon sequence data from the literature - FOR PAIRED END DATA
+
+
+## 1. Dowloading the raw sequence data from ENA 
+https://www.ebi.ac.uk/ena
+1. enter the accession number in the search engine
+
+2. Download a txt file that contains metadata and ftp links (for downloading fastqs) by clicking on TEXT in the Read Files tab on the submission
+This tab takes sometimes a little bit of time to appear between the Navigation and Attributes tabs.
+To be sure that you have all the metadata, you can click on "select columns" before downloading the txt file and select more columns that could be relevant for metadata (sample names, library names...)
+
+3. Open the txt file and select all the ftp links present in the "fastq_ftp" column
+
+4. Open a terminal and use wget to download the fastq files with these ftp links : example below
+
+wget ftp.sra.ebi.ac.uk/vol1/fastq/ERR286/004/ERR2862034/ERR2862034.fastq.gz
+
+#### Verify if some of the fastq.gz files are corrupted
+gzip -t *.gz
+
+
+#For splitting combined gyrB and gyrB or ITS - Code à tester de Martial
+## or use command below if sample names contains "R"
+ls *.gz | awk -F"_" {'print $1"_"$2"_"$3"_"'} | sort | uniq > group
+
+#Trim primers and separe the reads with cutadapt 2.7
+mkdir gyrB_trimmed 
+
+for i in `cat group`; do ~/.local/bin/cutadapt --discard-untrimmed -o gyrB_trimmed/$i"R1_001.fastq.gz" -p gyrB_trimmed/$i"R2_001.fastq.gz" -g MGNCCNGSNATGTAYATHGG -G ACNCCRTGNARDCCDCCNGA -e 0 -O 20 $i"R1_001.fastq.gz" $i"R2_001.fastq.gz"; done
+
+
+## Importing raw sequences in qiime2 - quality check and trimming to V4 region
+source activate qiime2-2019.7
+
+###Importing data with Casava format (ex: eDNA1012_S50_L001_R1_001.fastq.gz)
+qiime tools import \
+  --type 'SampleData[PairedEndSequencesWithQuality]' \
+  --input-path 'gyrB_trimmed' \
+  --input-format CasavaOneEightSingleLanePerSampleDirFmt \
+  --output-path Chesneau_unpub_gyrB.qza
+
+
+  ### Quality Check
+qiime demux summarize \
+ --i-data Chesneau_unpub_gyrB.qza \
+ --o-visualization Chesneau_unpub_gyrB.qzv
+qiime tools view Chesneau_unpub_gyrB.qzv
+# check for Qiime2 view for quality and verify length, and confirm that pair-ending worked.
+
+
+# Run DADA2
+####Processed on R version 3.5.1 (2018-07-02) 
+####DADA2: 1.10.0 / Rcpp: 1.0.2 / RcppParallel: 4.4.3 
+
+qiime dada2 denoise-paired \
+  --i-demultiplexed-seqs Chesneau_unpub_gyrB.qza \
+  --p-trim-left-f 0 \
+  --p-trim-left-r 0 \
+  --p-trunc-len-f 180 \
+  --p-trunc-len-r 160 \
+  --p-n-threads 5 \
+  --o-table Chesneau_unpub_gyrB-table.qza \
+  --o-representative-sequences Chesneau_unpub_gyrB-rep-seqs.qza \
+  --o-denoising-stats Chesneau_unpub_gyrB-denoising-stats.qza \
+  --verbose
+
+qiime metadata tabulate \
+  --m-input-file Chesneau_unpub_gyrB-denoising-stats.qza \
+  --o-visualization Chesneau_unpub_gyrB_denoising-stats.qzv
+qiime tools view Chesneau_unpub_gyrB_denoising-stats.qzv
+# look for any substantial drops
+
+qiime feature-table summarize \
+  --i-table Chesneau_unpub_gyrB-table.qza \
+  --o-visualization Chesneau_unpub_gyrB_table.qzv \
+  --m-sample-metadata-file Chesneau_unpub_gyrB_metadata.txt
+qiime tools view Chesneau_unpub_gyrB_table.qzv
+# Verify number of samples, and sequencing depth.
+
+qiime feature-table tabulate-seqs \
+  --i-data Chesneau_unpub_gyrB-rep-seqs.qza \
+  --o-visualization Chesneau_unpub_gyrB-rep-seqs.qzv
+qiime tools view Chesneau_unpub_gyrB-rep-seqs.qzv
+# Sequence length, and should start with “TAC….”, and number of SVs.
+
+##5.Assign taxonomy to the SVs. Download pretrained classifier for the V4 region (Silva 132 99% OTUs from 515F/806R region of sequences) based on the SILVA database: https://docs.qiime2.org/2019.1/data-resources/
+###To create the classifier based on your own parameters (fragment size, region) follow this tutorial, for now we will use the pre-trained classifier for the V4 region (515F-806R) at 99% similarity: https://docs.qiime2.org/2019.1/tutorials/feature-classifier/
+
+source activate qiime2-2019.7
+
+qiime feature-classifier classify-sklearn \
+  --i-classifier ~/Desktop/gyrB-db-v4-classifier.qza \
+  --i-reads Chesneau_unpub_gyrB-rep-seqs.qza \
+  --o-classification Chesneau_unpub_gyrB-rep-seqs-taxonomy.qza \
+  --p-n-jobs 4 \
+  --verbose
+
+##Visualization of the taxonomy output
+
+qiime metadata tabulate \
+  --m-input-file Chesneau_unpub_gyrB-rep-seqs-taxonomy.qza \
+  --o-visualization Chesneau_unpub_gyrB-rep-seqs-taxonomy.qzv
+
+
+##6.Remove SVs in the table that are Chloroplast or Mitochondria (not bacterial or archaeal taxa)
+
+qiime taxa filter-table \
+  --i-table Chesneau_unpub_gyrB-table.qza \
+  --i-taxonomy Chesneau_unpub_gyrB-rep-seqs-taxonomy.qza \
+  --p-exclude parE,Unassigned \
+  --o-filtered-table Chesneau_unpub_gyrB_table-noparE.qza
+
+qiime feature-table summarize \
+  --i-table Chesneau_unpub_gyrB_table-noparE.qza \
+  --o-visualization Chesneau_unpub_gyrB_table-noparE.qzv \
+  --m-sample-metadata-file Chesneau_unpub_gyrB_metadata.txt
+
+
+##7.Possible filtering/cleaning steps 
+
+###Remove samples with low read counts
+
+qiime feature-table filter-samples \
+  --i-table Chesneau_unpub_gyrB_table-noparE.qza \
+  --p-min-frequency 1000 \
+  --o-filtered-table Chesneau_unpub_gyrB_table-noparE-filtered-table.qza
+
+
+
+### Remove specific non-seed samples (ex: Negative controls... )
+qiime feature-table filter-samples \
+  --i-table Chesneau_unpub_gyrB_table-noparE-filtered-table.qza \
+  --m-metadata-file Chesneau_unpub_gyrB_metadata.txt \
+  --p-where "Habitat='Seed'" \
+  --o-filtered-table Chesneau_unpub_gyrB_table-FINAL.qza
+
+qiime feature-table summarize \
+  --i-table Chesneau_unpub_gyrB_table-FINAL.qza \
+  --o-visualization Chesneau_unpub_gyrB_table-FINAL.qzv \
+  --m-sample-metadata-file Chesneau_unpub_gyrB_metadata.txt
+
+
+
+###Filter the the rep-seq.qza to keep only SVs that are present in the final SV table (remove SVs that were Chloroplast, Mitochondria )
+source activate qiime2-2019.7
+
+qiime feature-table filter-seqs \
+  --i-data Chesneau_unpub_gyrB-rep-seqs.qza \
+  --i-table Chesneau_unpub_gyrB_table-FINAL.qza \
+  --o-filtered-data Chesneau_unpub_gyrB-rep-seqs-FINAL.qza
+
+qiime feature-table tabulate-seqs \
+  --i-data Chesneau_unpub_gyrB-rep-seqs-FINAL.qza \
+  --o-visualization Chesneau_unpub_gyrB-rep-seqs-FINAL.qzv
+qiime tools view Chesneau_unpub_gyrB-rep-seqs-FINAL.qzv
+
+
+## 8. Check rarefaction curves and rarefy dataset
+
+## Check rarefaction curves - change pmax-depth depending on the dataset
+qiime diversity alpha-rarefaction \
+  --i-table Chesneau_unpub_gyrB_table-FINAL.qza \
+  --m-metadata-file Chesneau_unpub_gyrB_metadata.txt \
+  --o-visualization Chesneau_unpub_alpha_rarefaction_curves.qzv \
+  --p-min-depth 3948 \
+  --p-max-depth 131557
+
+
+qiime diversity alpha-rarefaction \
+   --i-table Chesneau_unpub_gyrB_table-FINAL.qza \
+   --p-max-depth 131557 \
+   --p-steps 20 \
+   --o-visualization Chesneau_unpub_rarefaction_curves_eachsample.qzv
+
+## Choose rarefaction level and rarefy the table
+qiime feature-table rarefy \
+  --i-table Chesneau_unpub_gyrB_table-FINAL.qza \
+  --p-sampling-depth 3948 \
+  --o-rarefied-table Chesneau_unpub_gyrB_table-FINAL-rarefied.qza
+
+
+
+### 9. Summary after rarefaction and export SV table and rep seqs fasta file + taxonomy
+
+qiime feature-table summarize \
+  --i-table Chesneau_unpub_gyrB_table-FINAL-rarefied.qza \
+  --o-visualization Chesneau_unpub_gyrB_table-FINAL-rarefied.qzv \
+  --m-sample-metadata-file Chesneau_unpub_gyrB_metadata.txt
+
+###Filter the the rep-seq.qza to keep only SVs that are present in the rarefied SV table 
+ qiime feature-table filter-seqs \
+  --i-data Chesneau_unpub_gyrB-rep-seqs.qza \
+  --i-table Chesneau_unpub_gyrB_table-FINAL-rarefied.qza \
+  --o-filtered-data Chesneau_unpub_gyrB-rep-seqs-FINAL-rarefied.qza
+
+
+
+## Export Representative sequences for unrarefied and rarefied datasets
+qiime tools export \
+   --input-path Chesneau_unpub_gyrB-rep-seqs-FINAL-rarefied.qza \
+   --output-path gyrB_Final_output_files 
+ 
+
+  qiime tools export \
+   --input-path Chesneau_unpub_gyrB-rep-seqs-FINAL.qza \
+   --output-path gyrB_Final_output_files
+
+## Export SV tables for unrarefied and rarefied datasets 
+qiime tools export \
+  --input-path Chesneau_unpub_gyrB_table-FINAL-rarefied.qza \
+  --output-path gyrB_Final_output_files 
+
+qiime tools export \
+  --input-path Chesneau_unpub_gyrB_table-FINAL.qza \
+  --output-path gyrB_Final_output_files 
+
+cd gyrB_Final_output_files/
+biom convert \
+   -i Chesneau_unpub_gyrB_table-FINAL-rarefied.biom \
+   -o Chesneau_unpub_gyrB_table-FINAL-rarefied.txt \
+   --to-tsv
+
+biom convert \
+   -i Chesneau_unpub_gyrB_table-FINAL.biom \
+   -o Chesneau_unpub_gyrB_table-FINAL.txt \
+   --to-tsv
+
+
+
+
+## 10. Make phylogenetic tree on non-rarefied and rarefied dataset
+### in Qiime2 Make Phylogenetic tree (on all SVs or rarefied SVs) 
+
+qiime phylogeny align-to-tree-mafft-fasttree \
+  --i-sequences Chesneau_unpub_gyrB-rep-seqs-FINAL.qza \
+  --o-alignment Chesneau_unpub_gyrB-rep-seqs-FINAL-aligned.qza \
+  --o-masked-alignment Chesneau_unpub_gyrB-rarefied-masked-aligned-rep-seqs.qza \
+  --o-tree Chesneau_unpub_gyrB-gyrB-unrooted-tree.qza \
+  --o-rooted-tree Chesneau_unpub_gyrB-gyrB-rooted-tree.qza
+
+
+## 11. Calculate alpha and beta diversity index - change rarefaction level for each study
+
+qiime diversity core-metrics-phylogenetic \
+  --i-table Chesneau_unpub_gyrB_table-FINAL.qza \
+  --i-phylogeny Chesneau_unpub_gyrB-gyrB-rooted-tree.qza \
+  --m-metadata-file Chesneau_unpub_gyrB_metadata.txt \
+  --p-sampling-depth 3948 \
+  --output-dir ./diversity-metrics-results-gyrB
+
+qiime diversity alpha-group-significance \
+   --i-alpha-diversity diversity-metrics-results-gyrB/observed_otus_vector.qza \
+   --m-metadata-file ~/Desktop/Meta_analysis/Chesneau_unpub/Chesneau_unpub_gyrB_metadata.txt \
+   --o-visualization diversity-metrics-results-gyrB/observed_otus_compare_groups.qzv
+
+
+  ## 12. Check taxonomy bar graph
+qiime taxa barplot \
+  --i-table Chesneau_unpub_gyrB_table-FINAL-rarefied.qza \
+  --i-taxonomy Chesneau_unpub_gyrB-rep-seqs-taxonomy.qza \
+  --m-metadata-file Chesneau_unpub_gyrB_metadata.txt \
+  --o-visualization Chesneau_unpub_gyrB_taxa_barplot_rarefied.qzv
+
+
+
+###############################################################################################
+# Merging metadata txt files - works if the header is the same in all files
+####Might be necessary to run first: chmod +x Merging_txt_files.sh 
+./Merging_txt_files.sh 
+
+
+##13. Merging different datasets (rep-seq, tables, metadata, taxonomy?)
+source activate qiime2-2019.7
+
+####Merging SV tables
+qiime feature-table merge \
+  --i-tables Barret_M_2015_gyrB_table-FINAL.qza \
+  --i-tables Bnapus_Y1_gyrB_table-FINAL.qza \
+  --i-tables Bnapus_Y2_gyrB_table-FINAL.qza \
+  --i-tables Bnapus_Y3_gyrB_table-FINAL.qza \
+  --i-tables BrassicaDivPatho_gyrB_table-FINAL.qza \
+  --i-tables Chesneau_unpub_gyrB_table-FINAL.qza \
+  --i-tables Double_Inoc_gyrB_table-FINAL.qza \
+  --i-tables Endowild_table-FINAL.qza \
+  --i-tables F2S_Y2_gyrB_table-FINAL.qza \
+  --i-tables F2S_Y3_gyrB_table-FINAL.qza \
+  --i-tables F2S_Y4A_gyrB_table-FINAL.qza \
+  --i-tables F2S_Y4B_gyrB_table-FINAL.qza \
+  --i-tables F2S_Y4C_gyrB_table-FINAL.qza \
+  --i-tables GEVES_gyrB_table-FINAL.qza \
+  --i-tables Rezki_S_2016_gyrB_table-FINAL.qza \
+  --i-tables Vivanco_table-FINAL.qza \
+  --i-tables Torres-Cortes_G_2019_gyrB_table-FINAL.qza \
+  --o-merged-table All_studies_merged_gyrB_table-FINAL.qza
+
+
+
+
+qiime feature-table summarize \
+  --i-table All_studies_merged_gyrB_table-FINAL.qza \
+  --o-visualization All_studies_merged_gyrB_table-FINAL.qzv \
+  --m-sample-metadata-file All-studies-merged-metadata-gyrB.txt
+
+
+biom convert \
+   -i All_studies_merged_gyrB_table-FINAL.biom \
+   -o All_studies_merged_gyrB_table-FINAL.txt \
+   --to-tsv
+
+qiime feature-table merge \
+  --i-tables Barret_M_2015_gyrB_table-FINAL-rarefied.qza \
+  --i-tables Bnapus_Y1_gyrB_table-FINAL-rarefied.qza \
+  --i-tables Bnapus_Y2_gyrB_table-FINAL-rarefied.qza \
+  --i-tables Bnapus_Y3_gyrB_table-FINAL-rarefied.qza \
+  --i-tables BrassicaDivPatho_gyrB_table-FINAL-rarefied.qza \
+  --i-tables Chesneau_unpub_gyrB_table-FINAL-rarefied.qza \
+  --i-tables Double_Inoc_gyrB_table-FINAL-rarefied.qza \
+  --i-tables Endowild_table-FINAL-rarefied.qza \
+  --i-tables F2S_Y2_gyrB_table-FINAL-rarefied.qza \
+  --i-tables F2S_Y3_gyrB_table-FINAL-rarefied.qza \
+  --i-tables F2S_Y4A_gyrB_table-FINAL-rarefied.qza \
+  --i-tables F2S_Y4B_gyrB_table-FINAL-rarefied.qza \
+  --i-tables F2S_Y4C_gyrB_table-FINAL-rarefied.qza \
+  --i-tables GEVES_gyrB_table-FINAL-rarefied.qza \
+  --i-tables Rezki_S_2016_gyrB_table-FINAL-rarefied.qza \
+  --i-tables Vivanco_table-FINAL-rarefied.qza \
+  --i-tables Torres-Cortes_G_2019_gyrB_table-FINAL-rarefied.qza \
+  --o-merged-table All_studies_merged_gyrB_table-FINAL-rarefied.qza
+
+qiime feature-table summarize \
+  --i-table All_studies_merged_gyrB_table-FINAL-rarefied.qza \
+  --o-visualization All_studies_merged_gyrB_table-FINAL-rarefied.qzv \
+  --m-sample-metadata-file All-studies-merged-metadata-gyrB.txt
+
+biom convert \
+   -i All_studies_merged_gyrB_table-FINAL-rarefied.biom \
+   -o All_studies_merged_gyrB_table-FINAL-rarefied.txt \
+   --to-tsv
+
+### Merging representative sequences
+qiime feature-table merge-seqs \
+  --i-data Barret_M_2015_gyrB-rep-seqs-FINAL-rarefied.qza \
+  --i-data Bnapus_Y1_gyrB-rep-seqs-FINAL-rarefied.qza \
+  --i-data Bnapus_Y2_gyrB-rep-seqs-FINAL-rarefied.qza \
+  --i-data Bnapus_Y3_gyrB-rep-seqs-FINAL-rarefied.qza \
+  --i-data BrassicaDivPatho_gyrB-rep-seqs-FINAL-rarefied.qza \
+  --i-data Chesneau_unpub_gyrB-rep-seqs-FINAL-rarefied.qza \
+  --i-data Double_Inoc_gyrB-rep-seqs-FINAL-rarefied.qza \
+  --i-data Endowild-rep-seqs-FINAL-rarefied.qza \
+  --i-data F2S_Y2_gyrB-rep-seqs-FINAL-rarefied.qza \
+  --i-data F2S_Y3_gyrB-rep-seqs-FINAL-rarefied.qza \
+  --i-data F2S_Y4A_gyrB-rep-seqs-FINAL-rarefied.qza \
+  --i-data F2S_Y4B_gyrB-rep-seqs-FINAL-rarefied.qza \
+  --i-data F2S_Y4C_gyrB-rep-seqs-FINAL-rarefied.qza \
+  --i-data GEVES_gyrB-rep-seqs-FINAL-rarefied.qza \
+  --i-data Rezki_S_2016_gyrB-rep-seqs-FINAL-rarefied.qza \
+  --i-data Vivanco-rep-seqs-FINAL-rarefied.qza \
+  --i-data Torres-Cortes_G_2019_gyrB-rep-seqs-FINAL-rarefied.qza \
+  --o-merged-data All_studies_merged_gyrB-rep-seqs-FINAL-rarefied.qza
+
+
+qiime feature-table tabulate-seqs \
+  --i-data All_studies_merged_gyrB-rep-seqs-FINAL-rarefied.qza \
+  --o-visualization All_studies_merged_gyrB-rep-seqs-FINAL-rarefied.qzv
+qiime tools view All_studies_merged_gyrB-rep-seqs-FINAL-rarefied.qzv
+
+qiime feature-table merge-seqs \
+  --i-data Barret_M_2015_gyrB-rep-seqs-FINAL.qza \
+  --i-data Bnapus_Y1_gyrB-rep-seqs-FINAL.qza \
+  --i-data Bnapus_Y2_gyrB-rep-seqs-FINAL.qza \
+  --i-data Bnapus_Y3_gyrB-rep-seqs-FINAL.qza \
+  --i-data BrassicaDivPatho_gyrB-rep-seqs-FINAL.qza \
+  --i-data Chesneau_unpub_gyrB-rep-seqs-FINAL.qza \
+  --i-data Double_Inoc_gyrB-rep-seqs-FINAL.qza \
+  --i-data Endowild-rep-seqs-FINAL.qza \
+  --i-data F2S_Y2_gyrB-rep-seqs-FINAL.qza \
+  --i-data F2S_Y3_gyrB-rep-seqs-FINAL.qza \
+  --i-data F2S_Y4A_gyrB-rep-seqs-FINAL.qza \
+  --i-data F2S_Y4B_gyrB-rep-seqs-FINAL.qza \
+  --i-data F2S_Y4C_gyrB-rep-seqs-FINAL.qza \
+  --i-data GEVES_gyrB-rep-seqs-FINAL.qza \
+  --i-data Rezki_S_2016_gyrB-rep-seqs-FINAL.qza \
+  --i-data Vivanco-rep-seqs-FINAL.qza \
+  --i-data Torres-Cortes_G_2019_gyrB-rep-seqs-FINAL.qza \
+  --o-merged-data All_studies_merged_gyrB-rep-seqs-FINAL.qza
+
+qiime feature-table tabulate-seqs \
+  --i-data All_studies_merged_gyrB-rep-seqs-FINAL.qza \
+  --o-visualization All_studies_merged_gyrB-rep-seqs-FINAL.qzv
+qiime tools view All_studies_merged_gyrB-rep-seqs-FINAL.qzv
+
+########################################################################################
+
+##For Subset 1 (unrarefied dataset): filter samples that are based on cultivable methods
+source activate qiime2-2019.7
+
+qiime feature-table summarize \
+  --i-table All_studies_merged_gyrB_table-FINAL.qza \
+  --o-visualization All_studies_merged_gyrB_table-FINAL.qzv \
+  --m-sample-metadata-file All-studies-merged-metadata-gyrB.txt
+
+
+qiime feature-table filter-samples \
+  --i-table All_studies_merged_gyrB_table-FINAL.qza \
+  --m-metadata-file All-studies-merged-metadata-gyrB.txt \
+  --p-where "[No_cultivable]='Yes'" \
+  --o-filtered-table Subset1_All_studies_merged_gyrB_table-FINAL-filtered.qza
+
+
+  ##Assign taxonomy to the filtered rep-seqs
+qiime feature-classifier classify-sklearn \
+  --i-classifier ~/Desktop/gyrB-db-v4-classifier.qza \
+  --i-reads Subset1_All_studies_merged_gyrB-rep-seqs-FINAL-filtered.qza \
+  --o-classification Subset1_All_studies_merged_gyrB-rep-seqs-FINAL-filtered-taxonomy.qza \
+  --p-n-jobs 1 \
+  --verbose
+
+qiime metadata tabulate \
+  --m-input-file Subset1_All_studies_merged_gyrB-rep-seqs-FINAL-filtered-taxonomy.qza \
+  --o-visualization Subset1_All_studies_merged_gyrB-rep-seqs-FINAL-filtered-taxonomy.qzv
+
+
+##Filter low rare ASVs
+
+qiime feature-table filter-features \
+  --i-table Subset1_All_studies_merged_gyrB_table-FINAL-filtered.qza \
+  --p-min-frequency 20 \
+  --p-min-samples 2 \
+  --o-filtered-table Subset1_All_studies_merged_gyrB_table-FINAL-filtered2.qza
+
+qiime feature-table summarize \
+  --i-table Subset1_All_studies_merged_gyrB_table-FINAL-filtered2.qza \
+  --o-visualization Subset1_All_studies_merged_gyrB_table-FINAL-filtered2.qzv \
+  --m-sample-metadata-file All-studies-merged-metadata-gyrB.txt
+
+
+
+###Filter the the rep-seq.qza to keep only SVs that are present in the filtered SV table 
+ qiime feature-table filter-seqs \
+  --i-data All_studies_merged_gyrB-rep-seqs-FINAL.qza \
+  --i-table Subset1_All_studies_merged_gyrB_table-FINAL-filtered2.qza \
+  --o-filtered-data Subset1_All_studies_merged_gyrB-rep-seqs-FINAL-filtered2.qza
+
+qiime feature-table tabulate-seqs \
+  --i-data Subset1_All_studies_merged_gyrB-rep-seqs-FINAL-filtered2.qza \
+  --o-visualization Subset1_All_studies_merged_gyrB-rep-seqs-FINAL-filtered2.qzv
+qiime tools view Subset1_All_studies_merged_gyrB-rep-seqs-FINAL-filtered2.qzv
+
+##Export rep-seqs for filtering in R to keep only gyrB sequences that have valid codant triplet and remove including haplotypes
+ qiime tools export \
+   --input-path Subset1_All_studies_merged_gyrB-rep-seqs-FINAL-filtered2.qza  \
+   --output-path Final_output_files
+
+ qiime tools export \
+   --input-path Subset1_All_studies_merged_gyrB_table-FINAL-filtered2.qza  \
+   --output-path Final_output_files
+
+biom convert \
+   -i Subset1_All_studies_merged_gyrB_table-FINAL-filtered2.biom \
+   -o Subset1_All_studies_merged_gyrB_table-FINAL-filtered2.txt \
+   --to-tsv
+
+
+#Identification of haplotypes included in another one
+
+perl searchIncludedHaplotypes.pl -hf Subset1_All_studies_merged_gyrB-rep-seqs-FINAL-filtered2.fasta -o gyrB_Subset1_result.tab
+
+##Before importing in R,change the SV names into their fasta sequences 
+
+##Import fasta file - gyrB subset 1
+```{r}
+library(dada2)
+
+test <- read.csv("Subset1_All_studies_merged_gyrB_table-FINAL-filtered2.txt", sep="\t", header=TRUE, row.names=1)
+
+seqtab <- t(test)
+```
+
+##Filter sequences that are too long or too short and that are not coding triplets
+```{r}
+table(nchar(getSequences(seqtab)))
+
+seqtab244 <- seqtab[,nchar(colnames(seqtab)) %in% 244]
+seqtab247 <- seqtab[,nchar(colnames(seqtab)) %in% 247]
+seqtab250 <- seqtab[,nchar(colnames(seqtab)) %in% 250]
+seqtab253 <- seqtab[,nchar(colnames(seqtab)) %in% 253]
+seqtab256 <- seqtab[,nchar(colnames(seqtab)) %in% 256]
+seqtab259 <- seqtab[,nchar(colnames(seqtab)) %in% 259]
+seqtab262 <- seqtab[,nchar(colnames(seqtab)) %in% 262]
+seqtab265 <- seqtab[,nchar(colnames(seqtab)) %in% 265]
+seqtab268 <- seqtab[,nchar(colnames(seqtab)) %in% 268]
+#Merge all files
+seq.final <- cbind(seqtab244, seqtab247, seqtab250, seqtab253, seqtab256, seqtab259, seqtab262, seqtab265, seqtab268)
+dim(seq.final)
+sum(seq.final)/sum(seqtab)
+```
+
+##Export filtered sequences
+```{r}
+seqfinalt=t(seq.final)
+dim(seqfinalt)
+write.table(seqfinalt, "Subset1_All_studies_merged_gyrB_table-FINAL-filtered3.txt",sep = "\t")
+
+## Then change back the fasta sequences into their md5 SV names before re-importing in qiime2
+###Convert txt in biom file
+source /macqiime/configs/bash_profile.txt
+biom convert -i Subset1_All_studies_merged_gyrB_table-FINAL-filtered3.txt -o Subset1_All_studies_merged_gyrB_table-FINAL-filtered3.biom --table-type="OTU table" --to-json
+
+
+
+qiime tools import \
+  --input-path Subset1_All_studies_merged_gyrB_table-FINAL-filtered3.biom \
+  --type 'FeatureTable[Frequency]' \
+  --input-format BIOMV100Format \
+  --output-path Subset1_All_studies_merged_gyrB_table-FINAL-filtered3.qza
+
+qiime feature-table summarize \
+  --i-table Subset1_All_studies_merged_gyrB_table-FINAL-filtered3.qza \
+  --o-visualization Subset1_All_studies_merged_gyrB_table-FINAL-filtered3.qzv \
+  --m-sample-metadata-file All-studies-merged-metadata-gyrB.txt
+
+###Filter the the rep-seq.qza to keep only SVs that are present in the filtered SV table 
+ qiime feature-table filter-seqs \
+  --i-data Subset1_All_studies_merged_gyrB-rep-seqs-FINAL-filtered2.qza \
+  --i-table Subset1_All_studies_merged_gyrB_table-FINAL-filtered3.qza \
+  --o-filtered-data Subset1_All_studies_merged_gyrB-rep-seqs-FINAL-filtered3.qza
+
+
+##Export final Subset 1 rep-seqs and SV table
+qiime feature-table tabulate-seqs \
+  --i-data Subset1_All_studies_merged_gyrB-rep-seqs-FINAL-filtered3.qza \
+  --o-visualization Subset1_All_studies_merged_gyrB-rep-seqs-FINAL-filtered3.qzv
+qiime tools view Subset1_All_studies_merged_gyrB-rep-seqs-FINAL-filtered3.qzv
+
+
+##Export rep-seqs for filtering in R to keep only gyrB sequences that have valid codant triplet and remove including haplotypes
+ qiime tools export \
+   --input-path Subset1_All_studies_merged_gyrB-rep-seqs-FINAL-filtered3.qza  \
+   --output-path Final_output_files
+
+ qiime tools export \
+   --input-path Subset1_All_studies_merged_gyrB-rep-seqs-FINAL-filtered3.qza  \
+   --output-path Final_output_files
+
+
+
+
+
+
+
+
+###################################################################################
+
+##For Subset 2 (rarefied dataset): filter samples that are based on cultivable methods
+source activate qiime2-2019.7
+
+
+qiime feature-table filter-samples \
+  --i-table All_studies_merged_gyrB_table-FINAL-rarefied.qza \
+  --m-metadata-file All-studies-merged-metadata-gyrB.txt \
+  --p-where "[No_cultivable]='Yes'" \
+  --o-filtered-table Subset2_All_studies_merged_gyrB_table-FINAL-rarefied-filtered.qza
+
+
+qiime feature-table summarize \
+  --i-table Subset2_All_studies_merged_gyrB_table-FINAL-rarefied-filtered.qza \
+  --o-visualization Subset2_All_studies_merged_gyrB_table-FINAL-rarefied-filtered.qzv \
+  --m-sample-metadata-file All-studies-merged-metadata-gyrB.txt
+
+biom convert \
+   -i Subset2_All_studies_merged_gyrB_table-FINAL-rarefied-filtered.biom \
+   -o Subset2_All_studies_merged_gyrB_table-FINAL-rarefied-filtered.txt \
+   --to-tsv
+
+###Filter the the rep-seq.qza to keep only SVs that are present in the filtered SV table 
+ qiime feature-table filter-seqs \
+  --i-data All_studies_merged_gyrB-rep-seqs-FINAL-rarefied.qza \
+  --i-table Subset2_All_studies_merged_gyrB_table-FINAL-rarefied-filtered.qza \
+  --o-filtered-data Subset2_All_studies_merged_gyrB-rep-seqs-FINAL-rarefied-filtered.qza
+
+qiime feature-table tabulate-seqs \
+  --i-data Subset2_All_studies_merged_gyrB-rep-seqs-FINAL-rarefied-filtered.qza \
+  --o-visualization Subset2_All_studies_merged_gyrB-rep-seqs-FINAL-rarefied-filtered.qzv
+qiime tools view Subset2_All_studies_merged_gyrB-rep-seqs-FINAL-rarefied-filtered.qzv
+
+
+
+#Identification des haplotypes inclus dans un autre 
+
+perl searchIncludedHaplotypes.pl -hf Subset2_All_studies_merged_gyrB-rep-seqs-FINAL-filtered2.fasta -o gyrB_Subset2_result.tab
+
+##Before importing in R,change the SV names into their fasta sequences 
+
+##Import fasta file - gyrB subset 1
+```{r}
+library(dada2)
+
+test <- read.csv("Subset2_All_studies_merged_gyrB_table-FINAL-rarefied-filtered.txt", sep="\t", header=TRUE, row.names=1)
+
+seqtab <- t(test)
+```
+
+##Filter sequences that are too long or too short and that are not coding triplets
+```{r}
+table(nchar(getSequences(seqtab)))
+
+seqtab244 <- seqtab[,nchar(colnames(seqtab)) %in% 244]
+seqtab247 <- seqtab[,nchar(colnames(seqtab)) %in% 247]
+seqtab250 <- seqtab[,nchar(colnames(seqtab)) %in% 250]
+seqtab253 <- seqtab[,nchar(colnames(seqtab)) %in% 253]
+seqtab256 <- seqtab[,nchar(colnames(seqtab)) %in% 256]
+seqtab259 <- seqtab[,nchar(colnames(seqtab)) %in% 259]
+seqtab262 <- seqtab[,nchar(colnames(seqtab)) %in% 262]
+seqtab265 <- seqtab[,nchar(colnames(seqtab)) %in% 265]
+seqtab268 <- seqtab[,nchar(colnames(seqtab)) %in% 268]
+#Merge all files
+seq.final <- cbind(seqtab244, seqtab247, seqtab250, seqtab253, seqtab256, seqtab259, seqtab262, seqtab265, seqtab268)
+dim(seq.final)
+sum(seq.final)/sum(seqtab)
+```
+
+##Export filtered sequences
+```{r}
+seqfinalt=t(seq.final)
+dim(seqfinalt)
+write.table(seqfinalt, "Subset2_All_studies_merged_gyrB_table-FINAL-rarefied-filtered2.txt",sep = "\t")
+
+## Then change back the fasta sequences into their md5 SV names before re-importing in qiime2
+###Convert txt in biom file
+source /macqiime/configs/bash_profile.txt
+biom convert -i Subset2_All_studies_merged_gyrB_table-FINAL-rarefied-filtered2.txt -o Subset2_All_studies_merged_gyrB_table-FINAL-rarefied-filtered2.biom --table-type="OTU table" --to-json
+
+
+
+qiime tools import \
+  --input-path Subset2_All_studies_merged_gyrB_table-FINAL-rarefied-filtered2.biom \
+  --type 'FeatureTable[Frequency]' \
+  --input-format BIOMV100Format \
+  --output-path Subset2_All_studies_merged_gyrB_table-FINAL-rarefied-filtered2.qza
+
+qiime feature-table summarize \
+  --i-table Subset2_All_studies_merged_gyrB_table-FINAL-rarefied-filtered2.qza \
+  --o-visualization Subset2_All_studies_merged_gyrB_table-FINAL-rarefied-filtered2.qzv \
+  --m-sample-metadata-file All-studies-merged-metadata-gyrB.txt
+
+###Filter the the rep-seq.qza to keep only SVs that are present in the filtered SV table 
+ qiime feature-table filter-seqs \
+  --i-data Subset2_All_studies_merged_gyrB-rep-seqs-FINAL-rarefied-filtered.qza \
+  --i-table Subset2_All_studies_merged_gyrB_table-FINAL-rarefied-filtered2.qza \
+  --o-filtered-data Subset2_All_studies_merged_gyrB-rep-seqs-FINAL-rarefied-filtered2.qza
+
+
+##Export final Subset 2 rep-seqs and SV table
+qiime feature-table tabulate-seqs \
+  --i-data Subset2_All_studies_merged_gyrB-rep-seqs-FINAL-rarefied-filtered2.qza \
+  --o-visualization Subset2_All_studies_merged_gyrB-rep-seqs-FINAL-rarefied-filtered2.qzv
+qiime tools view Subset2_All_studies_merged_gyrB-rep-seqs-FINAL-rarefied-filtered2.qzv
+
+
+##Export rep-seqs for filtering in R to keep only gyrB sequences that have valid codant triplet and remove including haplotypes
+ qiime tools export \
+   --input-path Subset2_All_studies_merged_gyrB-rep-seqs-FINAL-rarefied-filtered2.qza  \
+   --output-path Final_output_files
+
+
+
+
+
+
+
+
+
+
+###########################################################################################
+
+# Diversity results generated by study - export results and merge all study results in 1 file
+### Extraction diversity result by study from zip files (ex qza)
+## Transform the qza in zip files (control f)
+##might be necessary to run: chmod +x diversity-index-extraction-script.sh 
+## copy the script in "extraction" folder and execute the script - it will create a txt file with all div results
+##Run the following command to execute the script - don't forget to change the name of the 1st file in the script
+./diversity-index-extraction-script.sh 
+
+# Merging diversity index txt files - works if the header is the same in all files
+./Merging_txt_files.sh 
+
+
+
+
+#############################################################################################
+
+##Prepare SUBSET 3
+#Make general NMDS and diversity analyses on all studies combined & Assign taxonomy to all SVs combined
+##Done in folder "qiime2_analysis_merged_gyrB"
+source activate qiime2-2019.7
+
+### in Qiime2 Make Phylogenetic tree on filtered FINAL dataset
+
+qiime phylogeny align-to-tree-mafft-fasttree \
+  --i-sequences Subset1_All_studies_merged_gyrB-rep-seqs-FINAL-filtered3.qza \
+  --o-alignment Subset1_All_studies_merged_gyrB-rep-seqs-FINAL-filtered3-aligned.qza \
+  --o-masked-alignment Subset1_All_studies_merged_gyrB-rep-seqs-FINAL-filtered3-masked-aligned.qza \
+  --o-tree Subset1_All_studies_merged_gyrB-rep-seqs-FINAL-filtered3-unrooted-tree.qza \
+  --o-rooted-tree Subset1_All_studies_merged_gyrB-rep-seqs-FINAL-filtered3-rooted-tree.qza
+
+
+### Calculate alpha and beta diversity index - change rarefaction level for each study
+
+qiime diversity core-metrics-phylogenetic \
+  --i-table Subset1_All_studies_merged_gyrB_table-FINAL-filtered3.qza \
+  --i-phylogeny Subset1_All_studies_merged_gyrB-rep-seqs-FINAL-filtered3-rooted-tree.qza \
+  --m-metadata-file All-studies-merged-metadata-gyrB.txt \
+  --p-sampling-depth 1000 \
+  --output-dir ./diversity-metrics-results
+
+qiime diversity alpha-group-significance \
+   --i-alpha-diversity diversity-metrics-results/observed_otus_vector.qza \
+   --m-metadata-file All-studies-merged-metadata-gyrB.txt \
+   --o-visualization diversity-metrics-results/observed_otus_compare_groups.qzv
+
+  # Run plugin for each alpha diversity result
+cd diversity-metrics-results
+for result in *vector.qza; \
+do \
+outname=${result/_vector.qza/_group_significance.qzv}; \
+qiime diversity alpha-group-significance \
+--i-alpha-diversity $result \
+--m-metadata-file ../All-studies-merged-metadata-gyrB.txt \
+--o-visualization $outname; \
+done
+
+
+
+  ### Check taxonomy bar graph
+qiime taxa barplot \
+  --i-table Subset1_All_studies_merged_gyrB_table-FINAL-filtered3.qza \
+  --i-taxonomy Subset1_All_studies_merged_gyrB-rep-seqs-FINAL-filtered-taxonomy.qza \
+  --m-metadata-file All-studies-merged-metadata-gyrB.txt \
+  --o-visualization Subset1_All_studies_merged_gyrB_table-FINAL-filtered3-barplot.qzv
+
+
+
+
+###Permanova use option --p-pairwise  or --p-no-pairwise
+
+qiime diversity beta-group-significance \
+  --i-distance-matrix bray_curtis_distance_matrix.qza \
+  --m-metadata-file ../All-studies-merged-metadata-gyrB.txt \
+  --m-metadata-column Study_ID \
+  --o-visualization bray_curtis_distance_matrix_permanova.qzv \
+  --p-no-pairwise
+
+
+
+## Export rarefied datasets = SUBSET 3 (same rarefaction at 1000 reads/sample for all studies)
+## Choose rarefaction level and rarefy the table
+qiime feature-table rarefy \
+  --i-table Subset1_All_studies_merged_gyrB_table-FINAL-filtered3.qza \
+  --p-sampling-depth 1000 \
+  --o-rarefied-table Subset3-gyrB-MiSeq_table-FINAL-rarefied.qza
+
+
+
+### 9. Summary after rarefaction and export SV table and rep seqs fasta file + taxonomy
+
+qiime feature-table summarize \
+  --i-table Subset3-gyrB-MiSeq_table-FINAL-rarefied.qza \
+  --o-visualization Subset3-gyrB-MiSeq_table-FINAL-rarefied.qzv \
+  --m-sample-metadata-file All-studies-merged-metadata-gyrB.txt
+
+###Filter the the rep-seq.qza to keep only SVs that are present in the rarefied SV table 
+ qiime feature-table filter-seqs \
+  --i-data Subset1_All_studies_merged_gyrB-rep-seqs-FINAL-filtered.qza \
+  --i-table Subset3-gyrB-MiSeq_table-FINAL-rarefied.qza \
+  --o-filtered-data Subset3_gyrB-MiSeq_rep-seq-FINAL-rarefied.qza
+
+qiime feature-table tabulate-seqs \
+  --i-data Subset3_gyrB-MiSeq_rep-seq-FINAL-rarefied.qza \
+  --o-visualization Subset3_gyrB-MiSeq_rep-seq-FINAL-rarefied.qzv
+qiime tools view Subset3_gyrB-MiSeq_rep-seq-FINAL-rarefied.qzv
+
+
+
+
+## Export Representative sequences for rarefied datasets
+qiime tools export \
+   --input-path Subset3_gyrB-MiSeq_rep-seq-FINAL-rarefied.qza \
+   --output-path Final_output_files 
+ 
+
+## Export SV tables for rarefied datasets 
+qiime tools export \
+  --input-path Subset3-gyrB-MiSeq_table-FINAL-rarefied.qza \
+  --output-path Final_output_files 
+
+cd Final_output_files /
+biom convert \
+   -i Subset3-gyrB-MiSeq_table-FINAL-rarefied.biom \
+   -o Subset3-gyrB-MiSeq_table-FINAL-rarefied.txt \
+   --to-tsv
+
+
+
+
+
+
+
+
+
+
+
+
+###Other steps - optional
+
+
+####Export trees
+qiime tools export \
+  --input-path BrassicaDivPatho-gyrB-unrooted-tree-rarefied.qza \
+  --output-path exported-tree-gyrB
+
+qiime tools export \
+  --input-path BrassicaDivPatho-gyrB-rooted-tree-rarefied.qza \
+  --output-path exported-tree-gyrB
+
+

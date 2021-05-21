@@ -1,0 +1,7 @@
+Plant	Type	nb_SV	Rel_abund_SV
+Bean	Core	3	28.032
+Radish	Core	9	67.44101695
+Rapeseed	Core	11	43.89727891
+Bean	Flexible	726	71.968
+Radish	Flexible	1511	32.55898295
+Rapeseed	Flexible	3760	56.10272079
