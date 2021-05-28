@@ -1,5 +1,5 @@
 ---
-title: "Meta-Analysis Seed Microbiome - Sccript to generate FIGURES"
+title: "Meta-Analysis Seed Microbiome - Script to generate FIGURES"
 author: "Marie Simonin"
 date: "18/01/2021"
 output: html_document
