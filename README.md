@@ -5,3 +5,8 @@ Authors: Marie SIMONIN, Martial BRIAND, Guillaume CHESNEAU, Aude ROCHEFORT, Cora
 Lab: IRHS, EmerSys Team, Angers (France) - INRAE
 
 contact: marie.simonin@inrae.fr
+
+
+The code and files available here are related to:
+- Bioinformatic processing of raw metabarcoding data for inclusion in the database using Qiime2 
+- Preparation of the figures in the manuscript using R
