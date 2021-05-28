@@ -5,9 +5,9 @@ date: "18/01/2021"
 output: html_document
 ---
 
-#Figure 1 Map colored by number of samples
+# Figure 1 Map colored by number of samples
 
-##load map info
+## load map info
 ```{r}
 map <- read.table("Fig1_map.txt", header=TRUE, check.names = FALSE, sep="\t")
 
@@ -15,7 +15,7 @@ head(map)
 dim(map)
 ```
 
-##Make final map - Figure 1A
+## Make final map - Figure 1A
 ```{r}
 library(ggplot2)
 library(dplyr)
@@ -25,7 +25,7 @@ world_map <- map_data("world")
 worldSubset <- inner_join(world_map, map, by = "region")
 head(worldSubset)
 
-# define countries outlines as a geom_polygon layer
+### Define countries outlines as a geom_polygon layer
 country.layer <- geom_polygon(aes(x = long, y = lat, group = group),
                              data = world_map, fill = NA, color = "black", size=0.3)
 
@@ -52,16 +52,16 @@ Fig1_map
 ```
 
 
-#Figure 2 ASV richness across all plants - based on Subset 2
+# Figure 2 ASV richness across all plants - based on Subset 2
 
-##16S V4 + V5/V6 datasets
+## 16S V4 + V5/V6 datasets
 ```{r}
 Div16S <- read.table("Metadata_16S_V4_V5V6_withDivSubset2_Jan2021.txt", header=TRUE, check.names = FALSE, sep="\t")
 
 head(Div16S)
 dim(Div16S)
 ```
-##gyrB dataset
+## gyrB dataset
 ```{r}
 DivgyrB <- read.table("Metadata_gyrB_withDivSubset2_Jan2021.txt", header=TRUE, check.names = FALSE, sep="\t")
 
@@ -69,7 +69,7 @@ head(DivgyrB)
 dim(DivgyrB)
 ```
 
-##ITS dataset
+## ITS dataset
 ```{r}
 DivITS <- read.table("Metadata_ITS1_ITS2_withDivSubset2_Jan2021.txt", header=TRUE, check.names = FALSE, sep="\t")
 
@@ -120,7 +120,7 @@ p5
 ```
 
 
-##ITS Average SV richness all studies
+## ITS Average SV richness all studies
 ```{r warning=FALSE}
 library(Rmisc)
 Diversity_stat <- summarySE(DivITS, measurevar="observed_otus", groupvars=c("Plant"), na.rm = TRUE)
@@ -141,9 +141,7 @@ p6=ggplot(data=DivITS, aes(x=observed_otus, y=Study_ID, color=Plant, shape=Seed_
 p6
 ```
 
-
-
-##Make combined Figure 2 plot with the 3 genes
+## Make combined Figure 2 plot with the 3 genes
 ```{r warning=FALSE}
 #http://www.sthda.com/english/wiki/wiki.php?id_contents=7930
 #plot: the plot to place (ggplot2 or a gtable)
@@ -168,9 +166,9 @@ figure2_Median
 
 ###############################################################################
 
-#Supplementary Figure S4 -Shannon index all genes
+# Supplementary Figure S4 -Shannon index all genes
 
-##16S-Average Shannon all studies
+## 16S-Average Shannon all studies
 ```{r warning=FALSE}
 library(Rmisc)
 Diversity_stat <- summarySE(Div16S, measurevar="shannon", groupvars=c("Plant"), na.rm = TRUE)
@@ -180,7 +178,7 @@ Div16S <- Div16S %>% group_by(Plant) %>%mutate(median_shannon_plant = median(sha
 ```
 
 
-##Figure S4A - 16S-Ordered based on Median plant richness
+## Figure S4A - 16S-Ordered based on Median plant richness
 ```{r warning=FALSE}
 library(ggplot2)
 Div16S$Plant<-ordered(Div16S$Plant, levels=c("Cauliflower","Tomato","Broccoli","Phelipanche ramosa","Tobacco","Lolium arundinacea","Eyebright","Cabbage","Pea","Wheat","Festuca rubra","Siberian wildrye","Pincushion Flower","Turnip","Dahurian wildrye","Setaria pumila", "Willow Gentian","Oat","Setaria viridis","Lolium perenne","Brassica nigra","Hairy vetch","Great Masterwort", "Rice","Grass of Parnassus","Alfalfa","Melon","Cardamine hirsuta","Alliaria petiolata","Carrot","Radish","Sunflower","Garden rocket","Heliosperma alpestre","Rapeseed","Capsella bursa-pastoris","Erophila verna ","Sinapis arvensis","Arabidopsis thaliana", "Bean",   "Rorippa sylvestris","Rhinanthus glacialis","Barbarea vulgaris ","Chiltern Gentian","Berteroa incana","Oak","Medicago truncatula"))
@@ -206,7 +204,7 @@ DivgyrB <- DivgyrB %>% group_by(Plant) %>%mutate(median_shannon_plant = median(s
 
 
 
-##Figure S4B- gyrB Ordered based on median plant richness
+## Figure S4B- gyrB Ordered based on median plant richness
 ```{r warning=FALSE}
 library(ggplot2)
 DivgyrB$Plant<-ordered(DivgyrB$Plant, levels=c("Cauliflower","Broccoli","Melon","Turnip","Tomato","Carrot","Rapeseed","Cabbage","Cardamine hirsuta","Brassica nigra","Medicago truncatula","Erophila verna ","Sinapis arvensis","Capsella bursa-pastoris","Arabidopsis thaliana","Radish","Alliaria petiolata","Berteroa incana","Barbarea vulgaris ","Garden rocket","Bean"))
@@ -219,7 +217,7 @@ p5
 ```
 
 
-##ITS Average Shannon all studies
+## ITS Average Shannon all studies
 ```{r warning=FALSE}
 library(Rmisc)
 Diversity_stat <- summarySE(DivITS, measurevar="shannon", groupvars=c("Plant"), na.rm = TRUE)
@@ -229,7 +227,7 @@ DivITS <- DivITS %>% group_by(Plant) %>%mutate(median_shannon_plant = median(sha
 
 
 
-##Figure S4C - ITS Ordered based on median plant richness
+## Figure S4C - ITS Ordered based on median plant richness
 ```{r warning=FALSE}
 library(ggplot2)
 DivITS$Plant<-ordered(DivITS$Plant, levels=c('Great Masterwort','Broccoli','Garden rocket','Medicago truncatula','Pincushion Flower','Tomato','Turnip','Cabbage','Pea','Phelipanche ramosa','Creeping Bentgrass','Grass of Parnassus','Heliosperma alpestre','Rapeseed','Willow Gentian','Eyebright','Radish','Bean','Cardamine hirsuta','Rice','White Clover','Rorripa sylvestris','Alliaria petiolata','Chiltern Gentian','Brassica nigra','Carrot','Sinapis arvensis','Capsella bursa-pastoris','Arabidopsis thaliana','Barbarea vulgaris ','Red Clover','Siberian wildrye','Dahurian wildrye','Wheat','Hairy vetch','Erophila verna ','Oak','Alfalfa','Oat','Cauliflower','Rhinanthus glacialis','Sunflower','Berteroa incana'))
@@ -243,9 +241,7 @@ p6
 
 
 
-##Make combined Figure S4 plot with the 3 genes
-
-###Ordered by median 
+## Make combined Figure S4 plot with the 3 genes
 ```{r warning=FALSE}
 #http://www.sthda.com/english/wiki/wiki.php?id_contents=7930
 #plot: the plot to place (ggplot2 or a gtable)
@@ -273,9 +269,9 @@ figureS4_MedianShannon
 
 ###############################################################################
 
-#Supplementary Figure S5 -Evenness all genes
+# Supplementary Figure S5 -Evenness all genes
 
-##16S-Average pielou_e all studies
+## 16S-Average pielou_e all studies
 ```{r warning=FALSE}
 library(Rmisc)
 Diversity_stat <- summarySE(Div16S, measurevar="pielou_e", groupvars=c("Plant"), na.rm = TRUE)
@@ -285,7 +281,7 @@ Div16S <- Div16S %>% group_by(Plant) %>%mutate(median_pielou_e_plant = median(pi
 ```
 
 
-##Figure S5A - 16S-Ordered based on Median plant richness
+## Figure S5A - 16S-Ordered based on Median plant richness
 ```{r warning=FALSE}
 library(ggplot2)
 Div16S$Plant<-ordered(Div16S$Plant, levels=c('Phelipanche ramosa',
@@ -301,7 +297,7 @@ p4
 ```
 
 
-##gyrB Average pielou_e all studies
+## gyrB Average pielou_e all studies
 ```{r warning=FALSE}
 library(Rmisc)
 Diversity_stat <- summarySE(DivgyrB, measurevar="pielou_e", groupvars=c("Plant"), na.rm = TRUE)
@@ -311,7 +307,7 @@ DivgyrB <- DivgyrB %>% group_by(Plant) %>%mutate(median_pielou_e_plant = median(
 ```
 
 
-##Figure S5B - gyrB -Ordered based on median plant richness
+## Figure S5B - gyrB -Ordered based on median plant richness
 ```{r warning=FALSE}
 library(ggplot2)
 DivgyrB$Plant<-ordered(DivgyrB$Plant, levels=c('Cardamine hirsuta','Cauliflower','Broccoli','Carrot','Alliaria petiolata','Brassica nigra','Tomato','Cabbage','Arabidopsis thaliana','Erophila verna ','Melon','Turnip','Capsella bursa-pastoris','Sinapis arvensis','Rapeseed','Berteroa incana','Barbarea vulgaris ','Medicago truncatula','Radish','Bean','Garden rocket'))
@@ -324,7 +320,7 @@ p5=ggplot(data=DivgyrB, aes(x=pielou_e, y=Study_ID, color=Plant, shape=Seed_frac
 p5
 ```
 
-##ITS-Average pielou_e all studies
+## ITS-Average pielou_e all studies
 ```{r warning=FALSE}
 library(Rmisc)
 Diversity_stat <- summarySE(DivITS, measurevar="pielou_e", groupvars=c("Plant"), na.rm = TRUE)
@@ -333,7 +329,7 @@ DivITS <- DivITS %>% group_by(Plant) %>%mutate(median_pielou_e_plant = median(pi
 #write.table(DivITS, "DivITS.txt")
 ```
 
-##Figure S5C - ITS Ordered based on median plant richness
+## Figure S5C - ITS Ordered based on median plant richness
 ```{r warning=FALSE}
 library(ggplot2)
 DivITS$Plant<-ordered(DivITS$Plant, levels=c('Cardamine hirsuta','Capsella bursa-pastoris','Brassica nigra','Tomato','Pea','Great Masterwort','Alliaria petiolata','Erophila verna ','Arabidopsis thaliana','Rorripa sylvestris','Phelipanche ramosa','Pincushion Flower','Grass of Parnassus','White Clover','Rice','Broccoli','Radish','Heliosperma alpestre','Rapeseed','Creeping Bentgrass','Willow Gentian','Garden rocket','Medicago truncatula','Turnip','Eyebright','Cabbage','Bean','Barbarea vulgaris ','Siberian wildrye','Sinapis arvensis','Chiltern Gentian','Red Clover','Oak','Hairy vetch','Carrot','Dahurian wildrye','Alfalfa','Oat','Wheat','Rhinanthus glacialis','Sunflower','Cauliflower','Berteroa incana'))
@@ -348,9 +344,7 @@ p6
 
 
 
-##Make combined Figure S5 plot with the 3 genes
-
-###Ordered by median 
+## Make combined Figure S5 plot with the 3 genes
 ```{r warning=FALSE}
 #http://www.sthda.com/english/wiki/wiki.php?id_contents=7930
 #plot: the plot to place (ggplot2 or a gtable)
@@ -377,15 +371,15 @@ figureS5_MedianEvenness
 ############################################################################################################
 #########################################################################################################
 
-#Figure S6 Effect of seed fraction on ASV richness
-###Calculate median by Seed fraction
+# Figure S6 Effect of seed fraction on ASV richness
+### Calculate median by Seed fraction
 ```{r warning=FALSE}
 library(dplyr) # Calculate median by plant
 Div16S <- Div16S %>% group_by(Seed_fraction) %>%mutate(median_richness_seed_fraction = median(observed_otus))
 #write.table(DivITS, "DivITS.txt")
 ```
 
-###Seed Fraction -16S Richness
+### Seed Fraction -16S Richness
 ```{r warning=FALSE}
 F1=ggplot(data=Div16S) + geom_jitter(alpha=0.8,  aes(x=observed_otus, y=Seed_fraction, color=Plant, shape=Seed_fraction)) +xlab("Observed ASVs Richness")+ylab("Seed Fraction")+ theme_classic()+ theme(axis.title = element_text(color="black", size=9, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+theme(strip.text.y = element_text(size=8, angle=0, face = "bold",margin = margin( b = 2, t = 2)))+scale_shape_manual(values=c(3, 1,2, 16))+ labs(shape = "Seed Fraction", color = "Plant Species")+ theme(legend.title = element_text(color="black", size=12, face="bold"))+scale_color_manual(values=color)+
   theme(legend.position = "none")+ggtitle("16S rRNA gene - Bacteria & Archaea") +
@@ -394,7 +388,7 @@ F1=ggplot(data=Div16S) + geom_jitter(alpha=0.8,  aes(x=observed_otus, y=Seed_fra
 F1
 ```
 
-###Seed Fraction -gyrB Richness
+### Seed Fraction -gyrB Richness
 ```{r warning=FALSE}
 F2=ggplot(data=DivgyrB) + geom_jitter(alpha=0.8,  aes(x=observed_otus, y=Seed_fraction, color=Plant, shape=Seed_fraction)) +xlab("Observed ASVs Richness")+ylab("Seed Fraction")+ theme_classic()+ theme(axis.title = element_text(color="black", size=9, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+theme(strip.text.y = element_text(size=8, angle=0, face = "bold",margin = margin( b = 2, t = 2)))+scale_shape_manual(values=c(1,16))+ labs(shape = "Seed Fraction", color = "Plant Species")+ theme(legend.title = element_text(color="black", size=12, face="bold"))+scale_color_manual(values=color)+
   theme(legend.position = "none")+ggtitle("gyrB gene - Bacteria") +
@@ -403,14 +397,14 @@ F2
 ```
 
 
-###Seed Fraction -ITS - Richness
+### Seed Fraction -ITS - Richness
 ```{r warning=FALSE}
 F3=ggplot(data=DivITS) + geom_jitter(alpha=0.8,  aes(x=observed_otus, y=Seed_fraction, color=Plant, shape=Seed_fraction)) +xlab("Observed ASVs Richness")+ylab("Seed Fraction")+ theme_classic()+ theme(axis.title = element_text(color="black", size=9, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+theme(strip.text.y = element_text(size=8, angle=0, face = "bold",margin = margin( b = 2, t = 2)))+scale_shape_manual(values=c(1,16))+ labs(shape = "Seed Fraction", color = "Plant Species")+ theme(legend.title = element_text(color="black", size=12, face="bold"))+scale_color_manual(values=color)+
   theme(legend.position = "none")+ggtitle("ITS Region - Fungi") +
   theme(plot.title = element_text(hjust = 0.5, face="bold", size=10))+scale_x_log10()+geom_boxplot(data=DivITS, aes(x=observed_otus, y=Seed_fraction), alpha=0.3)
 F3
 ```
-##Figure S6 with 3 plots combined
+## Figure S6 with 3 plots combined
 ```{r}
 library(ggpubr)
 figureS6=ggarrange(F1, F2, F3,labels = c("A", "B", "C"), ncol=2, nrow = 2)
@@ -422,8 +416,8 @@ figureS6
 
 ############################################################################################################
 #########################################################################################################
-#Figure S7 - Effect of Seed Preparation (grinding - soaking) on ASV richness
-###Seed Prep -16S Richness
+# Figure S7 - Effect of Seed Preparation (grinding - soaking) on ASV richness
+### Seed Prep -16S Richness
 ```{r warning=FALSE}
 P1=ggplot(data=Div16S) + geom_jitter(alpha=0.8,  aes(x=observed_otus, y=Microbe_collection, color=Plant, shape=Seed_fraction)) +xlab("Observed ASVs Richness")+ylab("Seed Preparation")+ theme_classic()+ theme(axis.title = element_text(color="black", size=9, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+theme(strip.text.y = element_text(size=8, angle=0, face = "bold",margin = margin( b = 2, t = 2)))+scale_shape_manual(values=c(3, 1,2, 16))+ labs(shape = "Seed Fraction", color = "Plant Species")+ theme(legend.title = element_text(color="black", size=12, face="bold"))+scale_color_manual(values=color)+
   theme(legend.position = "none")+ggtitle("16S rRNA gene - Bacteria & Archaea") +
@@ -432,7 +426,7 @@ P1=ggplot(data=Div16S) + geom_jitter(alpha=0.8,  aes(x=observed_otus, y=Microbe_
 P1
 ```
 
-###Seed Prep -gyrB Richness
+### Seed Prep -gyrB Richness
 ```{r warning=FALSE}
 P2=ggplot(data=DivgyrB) + geom_jitter(alpha=0.8,  aes(x=observed_otus, y=Microbe_collection, color=Plant, shape=Seed_fraction)) +xlab("Observed ASVs Richness")+ylab("Seed Fraction")+ theme_classic()+ theme(axis.title = element_text(color="black", size=9, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+theme(strip.text.y = element_text(size=8, angle=0, face = "bold",margin = margin( b = 2, t = 2)))+scale_shape_manual(values=c(1,16))+ labs(shape = "Seed Fraction", color = "Plant Species")+ theme(legend.title = element_text(color="black", size=12, face="bold"))+scale_color_manual(values=color)+
   theme(legend.position = "none")+ggtitle("gyrB gene - Bacteria") +
@@ -441,14 +435,14 @@ P2
 ```
 
 
-###Seed Prep -ITS - Richness
+### Seed Prep -ITS - Richness
 ```{r warning=FALSE}
 P3=ggplot(data=DivITS) + geom_jitter(alpha=0.8,  aes(x=observed_otus, y=Microbe_collection, color=Plant, shape=Seed_fraction)) +xlab("Observed ASVs Richness")+ylab("Seed Fraction")+ theme_classic()+ theme(axis.title = element_text(color="black", size=9, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+theme(strip.text.y = element_text(size=8, angle=0, face = "bold",margin = margin( b = 2, t = 2)))+scale_shape_manual(values=c(1,16))+ labs(shape = "Seed Fraction", color = "Plant Species")+ theme(legend.title = element_text(color="black", size=12, face="bold"))+scale_color_manual(values=color)+
   theme(legend.position = "none")+ggtitle("ITS Region - Fungi") +
   theme(plot.title = element_text(hjust = 0.5, face="bold", size=10))+scale_x_log10()+geom_boxplot(data=DivITS, aes(x=observed_otus, y=Microbe_collection), alpha=0.3)
 P3
 ```
-
+## Make Figure S7
 ```{r}
 library(ggpubr)
 figureS7=ggarrange(P1, P2, P3,labels = c("A", "B", "C"), ncol=2, nrow = 2)
@@ -459,8 +453,8 @@ figureS7
 
 ############################################################################################################
 #########################################################################################################
-#Figure S1 -16S Basic graphs to describe the meta-analysis dataset (Subset 2)
-###16S Seed Fraction
+# Figure S1 -16S Basic graphs to describe the meta-analysis dataset (Subset 2)
+### 16S Seed Fraction
 ```{r warning=FALSE}
 A1=Div16S %>% 
 	group_by(Seed_fraction) %>% 
@@ -469,7 +463,7 @@ A1=Div16S %>%
 		geom_bar(stat = 'identity', fill="#bcd4e6") +xlab("Seed Fraction")+ylab("Number of Seed Samples")+ theme_classic()+ theme(axis.title = element_text(color="black", size=11, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1))
 A1
 ```
-###Microbe Collection
+### Microbe Collection
 ```{r warning=FALSE}
 A2=Div16S %>% 
 	group_by(Microbe_collection) %>% 
@@ -478,7 +472,7 @@ A2=Div16S %>%
 		geom_bar(stat = 'identity', fill="#bcd4e6") +xlab("Seed Preparation")+ylab("Number of Seed Samples")+ theme_classic()+ theme(axis.title = element_text(color="black", size=11, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))
 A2
 ```
-###Plant Species
+### Plant Species
 ```{r warning=FALSE}
 color=c("Apiaceae"="#000000", "Brassicaceae"="#81edff", "Caprifoliaceae"="#8338ec", "Caryophyllaceae"="#ff7c43", "Celastraceae"="#a05195", "Fabaceae"="#f69cbd", "Fagaceae"=	"#90665f", "Gentianaceae"="#6f9d4b", "Orobanchaceae"="#affc41", "Poaceae"=	"#ffdd00", "Solanaceae"="#ff2600","Asteraceae"="grey", "Cucurbitaceae"="darkred") 
 library(forcats)
@@ -488,7 +482,7 @@ A3
 ```
 
 
-###Plant Family
+### Plant Family
 ```{r warning=FALSE}
 color=c("Apiaceae"="#000000", "Brassicaceae"="#81edff", "Caprifoliaceae"="#8338ec", "Caryophyllaceae"="#ff7c43", "Celastraceae"="#a05195", "Fabaceae"="#f69cbd", "Fagaceae"=	"#90665f", "Gentianaceae"="#6f9d4b", "Orobanchaceae"="#affc41", "Poaceae"=	"#ffdd00", "Solanaceae"="#ff2600","Asteraceae"="grey", "Cucurbitaceae"="darkred") 
 library(forcats)
@@ -497,7 +491,7 @@ A4=ggplot(Div16S,aes(x = fct_infreq(Family), fill=Family)) +
 A4
 ```
 
-###Countries
+### Countries
 ```{r warning=FALSE}
 library(forcats)
 A5=ggplot(Div16S,aes(x = fct_infreq(Country))) + 
@@ -505,7 +499,7 @@ A5=ggplot(Div16S,aes(x = fct_infreq(Country))) +
 A5
 ```
 
-###Research Institutes
+### Research Institutes
 ```{r warning=FALSE}
 library(forcats)
 A6=ggplot(Div16S,aes(x = fct_infreq(Study_Origin))) + 
@@ -513,21 +507,21 @@ A6=ggplot(Div16S,aes(x = fct_infreq(Study_Origin))) +
 A6
 ```
 
-###Site
+### Site
 ```{r warning=FALSE}
 A7=ggplot(Div16S,aes(x = fct_infreq(Site))) + 
 	geom_bar(stat = 'count', fill="#bcd4e6")+xlab("Production Condition")+ylab("Number of Seed Samples")+ theme_classic()+ theme(axis.title = element_text(color="black", size=11, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1,color="black", size=9, face="bold"))+ theme(axis.text.y = element_text(color="black", size=9, face="bold"))+theme(legend.position = "none")
 A7
 ```
 
-###Seed Number
+### Seed Number
 ```{r warning=FALSE}
 A8=ggplot(Div16S, aes(Seed_number))+geom_histogram(binwidth=5, fill="#bcd4e6") +xlab("Number of Seeds in Sample")+ylab("Number of Seed Samples")+ theme_classic()+ theme(axis.title = element_text(color="black", size=11, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1))
 A8
 ```
 
-#Figure S2 - gyrB
-###Seed Fraction
+# Figure S2 - gyrB
+### Seed Fraction
 ```{r warning=FALSE}
 A1=DivgyrB %>% 
 	group_by(Seed_fraction) %>% 
@@ -536,7 +530,7 @@ A1=DivgyrB %>%
 		geom_bar(stat = 'identity', fill="#bcd4e6") +xlab("Seed Fraction")+ylab("Number of Seed Samples")+ theme_classic()+ theme(axis.title = element_text(color="black", size=11, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))
 A1
 ```
-###Microbe Collection
+### Microbe Collection
 ```{r warning=FALSE}
 A2=DivgyrB %>% 
 	group_by(Microbe_collection) %>% 
@@ -545,7 +539,7 @@ A2=DivgyrB %>%
 		geom_bar(stat = 'identity', fill="#bcd4e6") +xlab("Seed Preparation")+ylab("Number of Seed Samples")+ theme_classic()+ theme(axis.title = element_text(color="black", size=11, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))
 A2
 ```
-###Plant Species
+### Plant Species
 ```{r warning=FALSE}
 color=c("Apiaceae"="#000000", "Brassicaceae"="#81edff", "Caprifoliaceae"="#8338ec", "Caryophyllaceae"="#ff7c43", "Celastraceae"="#a05195", "Fabaceae"="#f69cbd", "Fagaceae"=	"#90665f", "Gentianaceae"="#6f9d4b", "Orobanchaceae"="#affc41", "Poaceae"=	"#ffdd00", "Solanaceae"="#ff2600","Asteraceae"="grey", "Cucurbitaceae"="darkred") 
 library(forcats)
@@ -555,7 +549,7 @@ A3
 ```
 
 
-###Plant Family
+### Plant Family
 ```{r warning=FALSE}
 color=c("Apiaceae"="#000000", "Brassicaceae"="#81edff", "Caprifoliaceae"="#8338ec", "Caryophyllaceae"="#ff7c43", "Celastraceae"="#a05195", "Fabaceae"="#f69cbd", "Fagaceae"=	"#90665f", "Gentianaceae"="#6f9d4b", "Orobanchaceae"="#affc41", "Poaceae"=	"#ffdd00", "Solanaceae"="#ff2600","Asteraceae"="grey", "Cucurbitaceae"="darkred") 
 library(forcats)
@@ -564,7 +558,7 @@ A4=ggplot(DivgyrB,aes(x = fct_infreq(Family), fill=Family)) +
 A4
 ```
 
-###Countries
+### Countries
 ```{r warning=FALSE}
 library(forcats)
 A5=ggplot(DivgyrB,aes(x = fct_infreq(Country))) + 
@@ -572,7 +566,7 @@ A5=ggplot(DivgyrB,aes(x = fct_infreq(Country))) +
 A5
 ```
 
-###Research Institutes
+### Research Institutes
 ```{r warning=FALSE}
 library(forcats)
 A6=ggplot(DivgyrB,aes(x = fct_infreq(Study_Origin))) + 
@@ -580,7 +574,7 @@ A6=ggplot(DivgyrB,aes(x = fct_infreq(Study_Origin))) +
 A6
 ```
 
-###Site
+### Site
 ```{r warning=FALSE}
 A7=ggplot(DivgyrB,aes(x = fct_infreq(Site))) + 
 	geom_bar(stat = 'count', fill="#bcd4e6")+xlab("Production Condition")+ylab("Number of Seed Samples")+ theme_classic()+ theme(axis.title = element_text(color="black", size=11, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1,color="black", size=9, face="bold"))+ theme(axis.text.y = element_text(color="black", size=9, face="bold"))+theme(legend.position = "none")
@@ -588,14 +582,14 @@ A7
 ```
 
 
-###Seed Number
+### Seed Number
 ```{r warning=FALSE}
 A8=ggplot(DivgyrB, aes(Seed_number))+geom_histogram(binwidth=5, fill="#bcd4e6") +xlab("Number of Seeds in Sample")+ylab("Number of Seed Samples")+ theme_classic()+ theme(axis.title = element_text(color="black", size=11, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1))
 A8
 ```
 
-#Figure S3 - ITS
-###Seed Fraction
+# Figure S3 - ITS
+### Seed Fraction
 ```{r warning=FALSE}
 A1=DivITS %>% 
 	group_by(Seed_fraction) %>% 
@@ -604,7 +598,7 @@ A1=DivITS %>%
 		geom_bar(stat = 'identity', fill="#bcd4e6") +xlab("Seed Fraction")+ylab("Number of Seed Samples")+ theme_classic()+ theme(axis.title = element_text(color="black", size=11, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))
 A1
 ```
-###Microbe Collection
+### Microbe Collection
 ```{r warning=FALSE}
 A2=DivITS %>% 
 	group_by(Microbe_collection) %>% 
@@ -613,7 +607,7 @@ A2=DivITS %>%
 		geom_bar(stat = 'identity', fill="#bcd4e6") +xlab("Seed Preparation")+ylab("Number of Seed Samples")+ theme_classic()+ theme(axis.title = element_text(color="black", size=11, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))
 A2
 ```
-###Plant Species
+### Plant Species
 ```{r warning=FALSE}
 color=c("Apiaceae"="#000000", "Brassicaceae"="#81edff", "Caprifoliaceae"="#8338ec", "Caryophyllaceae"="#ff7c43", "Celastraceae"="#a05195", "Fabaceae"="#f69cbd", "Fagaceae"=	"#90665f", "Gentianaceae"="#6f9d4b", "Orobanchaceae"="#affc41", "Poaceae"=	"#ffdd00", "Solanaceae"="#ff2600","Asteraceae"="grey", "Cucurbitaceae"="darkred") 
 library(forcats)
@@ -623,7 +617,7 @@ A3
 ```
 
 
-###Plant Family
+### Plant Family
 ```{r warning=FALSE}
 color=c("Apiaceae"="#000000", "Brassicaceae"="#81edff", "Caprifoliaceae"="#8338ec", "Caryophyllaceae"="#ff7c43", "Celastraceae"="#a05195", "Fabaceae"="#f69cbd", "Fagaceae"=	"#90665f", "Gentianaceae"="#6f9d4b", "Orobanchaceae"="#affc41", "Poaceae"=	"#ffdd00", "Solanaceae"="#ff2600","Asteraceae"="grey", "Cucurbitaceae"="darkred") 
 library(forcats)
@@ -632,7 +626,7 @@ A4=ggplot(DivITS,aes(x = fct_infreq(Family), fill=Family)) +
 A4
 ```
 
-###Countries
+### Countries
 ```{r warning=FALSE}
 library(forcats)
 A5=ggplot(DivITS,aes(x = fct_infreq(Country))) + 
@@ -640,7 +634,7 @@ A5=ggplot(DivITS,aes(x = fct_infreq(Country))) +
 A5
 ```
 
-###Research Institutes
+### Research Institutes
 ```{r warning=FALSE}
 library(forcats)
 A6=ggplot(DivITS,aes(x = fct_infreq(Study_Origin))) + 
@@ -648,14 +642,14 @@ A6=ggplot(DivITS,aes(x = fct_infreq(Study_Origin))) +
 A6
 ```
 
-###Site
+### Site
 ```{r warning=FALSE}
 A7=ggplot(DivITS,aes(x = fct_infreq(Site))) + 
 	geom_bar(stat = 'count', fill="#bcd4e6")+xlab("Production Condition")+ylab("Number of Seed Samples")+ theme_classic()+ theme(axis.title = element_text(color="black", size=11, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1,color="black", size=9, face="bold"))+ theme(axis.text.y = element_text(color="black", size=9, face="bold"))+theme(legend.position = "none")
 A7
 ```
 
-###Seed Number
+### Seed Number
 ```{r warning=FALSE}
 A8=ggplot(DivITS, aes(Seed_number))+geom_histogram(binwidth=5, fill="#bcd4e6") +xlab("Number of Seeds in Sample")+ylab("Number of Seed Samples")+ theme_classic()+ theme(axis.title = element_text(color="black", size=11, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1))
 A8
@@ -665,7 +659,7 @@ A8
 ############################################################################################################
 #########################################################################################################
 
-#Figure 3 - Relationship between 16S and ITS ASV richness
+# Figure 3 - Relationship between 16S and ITS ASV richness
 ```{r}
 ITS_16S<-read.table("16S_and_ITS_merged_Subset2_metadata.txt", header=TRUE, check.names = FALSE, sep = "\t")
 head(ITS_16S)
@@ -680,7 +674,7 @@ c1=ggplot(data=ITS_16S) + geom_point(aes(x=observed_otus_16S, y=observed_otus_IT
 c1
 ```
 
-###Figure 3B - Plot ratio 16S-ITS richness by Plant Species
+## Figure 3B - Plot ratio 16S-ITS richness by Plant Species
 ```{r warning=FALSE}
 # Calculate median by plant
 ITS_16S <- ITS_16S %>% group_by(Plant) %>%mutate(median_ratio_observed_otus_plant = median(Ratio_observed_otus))
@@ -688,7 +682,7 @@ c5=ggplot(data=ITS_16S) + geom_jitter(aes(x=reorder(Plant, median_ratio_observed
 c5
 ```
 
-#Make Figure 3
+# Make Figure 3
 ```{r}
 library(ggpubr)
 figure3=ggarrange(c1, c5, nrow = 2, labels = c("A", "B"), heights = c(1,1.3)) 
@@ -699,7 +693,7 @@ figure3
 ############################################################################################################
 #########################################################################################################
 
-#Figure 4: Abundance Occupancy curves (and Figure S8 and S9)
+# Figure 4: Abundance Occupancy curves (and Figure S8 and S9)
 ##Calculations and graphs for 16S - V4 gene On Subset 3
 ```{r}
 SV<-read.table("Subset3-16S-V4-table-FINAL-rarefied.txt", header=TRUE, check.names = FALSE, sep = "\t", row.names=1)
@@ -709,7 +703,7 @@ dim(SV)
 
 
 
-##Calculate prevalence and relative abundance for each ASV
+## Calculate prevalence and relative abundance for each ASV
 ```{r}
 #Code Shade lab: https://github.com/ShadeLab/PAPER_Shade_CurrOpinMicro/blob/master/script/Core_prioritizing_script.R
 library(tidyverse)
@@ -728,7 +722,7 @@ head(SVprev_rel)
 
 ```
 
-##Merge prevalence/rel abund data with taxonomic info for each SV
+## Merge prevalence/rel abund data with taxonomic info for each SV
 ```{r}
 taxo<-read.table("Subset1-2_All_studies_merged_16S-rep-seqs-FINAL-V4-MiSeq-taxonomy.tsv", header=TRUE, check.names = FALSE, sep = "\t")
 SVprev_rel_taxo<-merge(SVprev_rel,taxo,by="SV")
@@ -739,7 +733,7 @@ head(SVprev_rel_taxo)
 ```
 
 
-##Open Transposed 16S-V4 ASV table and metadata - Subset 3
+## Open Transposed 16S-V4 ASV table and metadata - Subset 3
 ```{r}
 SV1 <- read.table("Subset3-16S-V4-table-FINAL-rarefied-transposed.txt", header=TRUE, check.names = FALSE, sep = "\t")
 meta1<-read.table("Metadata_16S_V4_V5V6_withDivSubset2_Jan2021.txt", header=TRUE, check.names = FALSE, sep = "\t")
@@ -753,7 +747,7 @@ dim(SV_use1)
 head(SV_use1)
 ```
 
-##Script for counting the number of Plants where each SV is observed
+## Script for counting the number of Plants where each SV is observed
 ```{r}
 #Keep only the Plant column as metadata for collapsing table by plant
 SV_use2 <- SV_use1[ -c(1:9,11:38) ]
@@ -769,7 +763,7 @@ dim(SV_use1_Plant)
 SV_use1_Plant_PA <- 1*((SV_use1_Plant>0)==1) 
 dim(SV_use1_Plant_PA)
 ```
-##the number of plant species where each SV was observed - do colsums and transpose results
+## the number of plant species where each SV was observed - do colsums and transpose results
 ```{r}
 SVobs_byPlant=data.frame(colSums(SV_use1_Plant_PA))
 SVobs_byPlant=na.omit(SVobs_byPlant)
@@ -784,14 +778,14 @@ SVprev_rel_taxo_Plantobs<-merge(SVprev_rel_taxo,SVobs_byPlant,by="SV")
 
 
 
-#Figure S8 - Plot Abundance-occupancy graph - 16S V4 - All phyla (for SI)
+# Figure S8 - Plot Abundance-occupancy graph - 16S V4 - All phyla (for SI)
 ```{r}
 g0=ggplot(data=SVprev_rel_taxo_Plantobs, aes(x=SV_relative_abundance, y=SV_Prevalence)) +
     geom_point(aes(color=NbPlantObs), alpha=0.7, size=0.7) + xlab("Log10(Mean ASV relative abundance)") + ylab("ASV Prevalence")+scale_x_log10(labels = scales::trans_format("log10", scales::math_format(10^.x)))+ scale_y_log10(labels = scales::percent_format(accuracy = 1))+facet_wrap(~Phylum, ncol=7)+ theme_classic()+ theme(axis.title = element_text(color="black", size=10, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+ theme(legend.title = element_text(color="black", size=10, face="bold")) + guides(color=guide_legend(title="Number of Plant\nSpecies Detected"))+scale_color_gradient2(midpoint=13, low="#c1e7ff", mid="#f2c057",high="red", breaks = c(1,5,10,15,20,25))+ theme(strip.background = element_rect(fill = "white"),strip.text = element_text(colour = "black", face = "bold"))+ theme(panel.background = element_rect(fill = "white",colour = "black",size = 0.5, linetype="solid"), panel.grid.major.y = element_line(size = 0.5, linetype = 'dashed',colour = "black"))
 g0
 ```
 
-##Figure 4A - Plot Abundance-occupancy graph - 16S V4 - Selected phyla 
+## Figure 4A - Plot Abundance-occupancy graph - 16S V4 - Selected phyla 
 ```{r}
 SVprev_rel_taxo_Plantobs <- read.table("/Users/msimonin/OneDrive/INRA/Projets/Meta-Analyse Seed Microbiome/Figures_Stats/Final Figures 2021/16S/Subset3-16S-V4-SV_prevalence_abundance_taxo.txt", header=TRUE, check.names = FALSE, sep = "\t")
 SVprev_rel_taxo_Plantobs_subset=subset(SVprev_rel_taxo_Plantobs, Most_abundant_phyla=="yes")
@@ -802,14 +796,14 @@ g1
 ```
 
 
-##Calculations and graphs for ITS1 dataset
+## Calculations and graphs for ITS1 dataset
 ```{r}
 SV_ITS<-read.table("Subset3-ITS1_table-FINAL-rarefied.txt", header=TRUE, check.names = FALSE, sep = "\t", row.names=1)
 head(SV_ITS)
 dim(SV_ITS)
 ```
 
-##Calculate prevalence and relative abundance for each ASV
+## Calculate prevalence and relative abundance for each ASV
 ```{r}
 library(dplyr)
 #Code Shade lab: https://github.com/ShadeLab/PAPER_Shade_CurrOpinMicro/blob/master/script/Core_prioritizing_script.R
@@ -828,7 +822,7 @@ dim(SV_ITSprev_rel)
 
 ```
 
-##Merge prevalence/rel abund data with taxonomic info for each SV
+## Merge prevalence/rel abund data with taxonomic info for each SV
 ```{r}
 taxo_ITS<-read.table("Subset1-2_All_studies_merged_ITS1_taxonomy.tsv", header=TRUE, check.names = FALSE, sep = "\t")
 SV_ITSprev_rel_taxo<-merge(SV_ITSprev_rel,taxo_ITS,by="SV")
@@ -839,7 +833,7 @@ head(SV_ITSprev_rel_taxo)
 ```
 
 
-##Open Transposed ITS1 ASV table and metadata - Subset 3 
+## Open Transposed ITS1 ASV table and metadata - Subset 3 
 ```{r}
 meta2 <- read.table("Metadata_ITS1_ITS2_withDivSubset2_Jan2021.txt", header=TRUE, check.names = FALSE, sep = "\t")
 SV_ITS1<-read.table("Subset3-ITS1_table-FINAL-rarefied-transposed.txt", header=TRUE, check.names = FALSE, sep = "\t")
@@ -853,7 +847,7 @@ dim(SV_ITS_use1)
 head(SV_ITS_use1)
 ```
 
-##Script for counting the number of Plants where each SV is observed
+## Script for counting the number of Plants where each SV is observed
 ```{r}
 #Keep only the Plant column as metadata for collapsing table by plant
 SV_ITS_use2 <- SV_ITS_use1[ -c(1:9,11:33) ]
@@ -869,7 +863,7 @@ dim(SV_ITS_use1_Plant)
 SV_ITS_use1_Plant_PA <- 1*((SV_ITS_use1_Plant>0)==1) 
 dim(SV_ITS_use1_Plant_PA)
 ```
-##the number of plant species where each SV was observed - do colsums and transpose results
+## the number of plant species where each SV was observed - do colsums and transpose results
 ```{r}
 SV_ITSobs_byPlant=data.frame(colSums(SV_ITS_use1_Plant_PA))
 SV_ITSobs_byPlant=na.omit(SV_ITSobs_byPlant)
@@ -884,7 +878,7 @@ head(SV_ITSprev_rel_taxo_Plantobs)
 ```
 
 
-##Figure 4B -Plot Abundance-occupancy graph - ITS1 - All phyla 
+## Figure 4B -Plot Abundance-occupancy graph - ITS1 - All phyla 
 ```{r}
 library(ggplot2)
 g2=ggplot(data=SV_ITSprev_rel_taxo_Plantobs, aes(x=SV_ITS_relative_abundance, y=SV_ITS_Prevalence)) +
@@ -894,14 +888,14 @@ g2
 
 
 
-##Figure S9 Calculations and graphs for gyrB dataset - Subset 3
+## Figure S9 Calculations and graphs for gyrB dataset - Subset 3
 ```{r}
 SV_gyrB<-read.table("Subset3-gyrB-MiSeq_table-FINAL-rarefied.txt", header=TRUE, check.names = FALSE, sep = "\t", row.names=1)
 head(SV_gyrB)
 dim(SV_gyrB)
 ```
 
-##Calculate prevalence and relative abundance for each ASV
+## Calculate prevalence and relative abundance for each ASV
 ```{r}
 #Code Shade lab: https://github.com/ShadeLab/PAPER_Shade_CurrOpinMicro/blob/master/script/Core_prioritizing_script.R
 #presence-absence data
@@ -920,7 +914,7 @@ dim(SV_gyrBprev_rel)
 
 ```
 
-##Merge prevalence/rel abund data with taxonomic info for each SV
+## Merge prevalence/rel abund data with taxonomic info for each SV
 ```{r}
 taxo_gyrB<-read.table("Subset1-2_All_studies_merged_gyrB-rep-seqs-FINAL-filtered-taxonomy-final.tsv", header=TRUE, check.names = FALSE, sep = "\t")
 SV_gyrBprev_rel_taxo<-merge(SV_gyrBprev_rel,taxo_gyrB,by="SV")
@@ -931,7 +925,7 @@ head(SV_gyrBprev_rel_taxo)
 ```
 
 
-##Open Transposed gyrB1 ASV table and metadata - Subset 3 
+## Open Transposed gyrB1 ASV table and metadata - Subset 3 
 ```{r}
 meta2 <- read.table("Metadata_gyrB_withDivSubset2_Jan2021.txt", header=TRUE, check.names = FALSE, sep = "\t")
 SV_gyrB1<-read.table("Subset3-gyrB-MiSeq_table-FINAL-rarefied-transposed.txt", header=TRUE, check.names = FALSE, sep = "\t")
@@ -945,7 +939,7 @@ dim(SV_gyrB_use1)
 head(SV_gyrB_use1)
 ```
 
-##Script for counting the number of Plants where each SV is observed
+## Script for counting the number of Plants where each SV is observed
 ```{r}
 #Keep only the Plant column as metadata for collapsing table by plant
 SV_gyrB_use2 <- SV_gyrB_use1[ -c(1:8,10:39) ]
@@ -961,7 +955,7 @@ dim(SV_gyrB_use1_Plant)
 SV_gyrB_use1_Plant_PA <- 1*((SV_gyrB_use1_Plant>0)==1) 
 dim(SV_gyrB_use1_Plant_PA)
 ```
-##the number of plant species where each SV was observed - do colsums and transpose results
+## the number of plant species where each SV was observed - do colsums and transpose results
 ```{r}
 SV_gyrBobs_byPlant=data.frame(colSums(SV_gyrB_use1_Plant_PA))
 SV_gyrBobs_byPlant=na.omit(SV_gyrBobs_byPlant)
@@ -976,7 +970,7 @@ head(SV_gyrBprev_rel_taxo_Plantobs)
 ```
 
 
-##Figure S9 - Plot Abundance-occupancy graph - gyrB - All phyla
+## Figure S9 - Plot Abundance-occupancy graph - gyrB - All phyla
 ```{r}
 g3=ggplot(data=SV_gyrBprev_rel_taxo_Plantobs, aes(x=SV_gyrB_relative_abundance, y=SV_gyrB_Prevalence)) +
     geom_point(aes(color=NbPlantObs), alpha=0.9, size=0.7) + xlab("Log10(Mean ASV relative abundance)") + ylab("ASV Prevalence")+scale_x_log10(labels = scales::trans_format("log10", scales::math_format(10^.x)))+ scale_y_log10(labels = scales::percent_format(accuracy = 1))+facet_wrap(~Phylum, ncol=3)+ theme_classic()+ theme(axis.title = element_text(color="black", size=10, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+ theme(legend.title = element_text(color="black", size=8, face="bold")) +scale_color_gradient2(midpoint=13, low="#c1e7ff", mid="#f2c057",high="red", breaks = c(1,5,10,15,20,25))+ theme(strip.background = element_rect(fill = "white"),strip.text = element_text(colour = "black", face = "bold"))+ theme(panel.background = element_rect(fill = "white",colour = "black",size = 0.5, linetype="solid"), panel.grid.major.y = element_line(size = 0.5, linetype = 'dashed',colour = "black")) + guides(colour = guide_legend(override.aes = list(size=2), title="Number of Plant\nSpecies Detected"))+ggtitle("gyrB gene - Bacteria")+theme(plot.title = element_text(hjust = 0.5, face="bold"))
@@ -984,7 +978,7 @@ g3
 ```
 
 
-##Figure 4C - Make small table of number of SVs observed in single or multiple species
+## Figure 4C - Make small table of number of SVs observed in single or multiple species
 ### For 16S
 ```{r}
 # set up cut-off values 
@@ -1019,7 +1013,7 @@ summary(ITS_bins)
 ```
 
 
-##Make final Figure 4 with 16S and ITS results
+## Make final Figure 4 with 16S and ITS results
 ```{r warning=FALSE}
 library(gridExtra)
 library(cowplot)
@@ -1039,8 +1033,8 @@ figure4
 ######################################################################################################
 #########################################################################################
 
-#Figure 5 
-##For 16S V4- Import SV table with only the most prevalent bacterial taxa (>20 species)
+# Figure 5 
+## For 16S V4- Import SV table with only the most prevalent bacterial taxa (>20 species)
 ```{r}
 meta2 <- read.table("Metadata_16S_V4_V5V6_withDivSubset2_Jan2021.txt", header=TRUE, check.names = FALSE, sep = "\t")
 Top_Bac_subset3<-read.table("Subset3-16S-V4-table-FINAL-rarefied-13mostprevalent.txt", header=TRUE, check.names = FALSE, sep = "\t")
@@ -1051,7 +1045,7 @@ dim(Top_Bac_subset3)
 
 ```
 
-###Transform matrix into long table format
+### Transform matrix into long table format
 ```{r}
 library(reshape2)
 Top_Bac_subset3_long=setNames(melt(Top_Bac_subset3), c('SampleID', 'Taxon', 'Relative_Abundance'))
@@ -1066,7 +1060,7 @@ dim(Top_Bac_subset3_use)
 head(Top_Bac_subset3_use)
 ```
 
-##Merge long format table with taxonomic info for each SV
+## Merge long format table with taxonomic info for each SV
 ```{r}
 taxo<-read.table("Subset1-2_All_studies_merged_16S-rep-seqs-FINAL-V4-MiSeq-taxonomy.tsv", header=TRUE, check.names = FALSE, sep = "\t")
 Top_Bac_subset3_use_taxo<-merge(Top_Bac_subset3_use,taxo,by="Taxon")
@@ -1075,7 +1069,7 @@ dim(Top_Bac_subset3_use_taxo)
 head(Top_Bac_subset3_use_taxo)
 
 ```
-##Figure 5A - Plotting 16S most prevalent taxa (n=13) with ggridge
+## Figure 5A - Plotting 16S most prevalent taxa (n=13) with ggridge
 ```{r}
 Top_Bac_subset3_use_taxo$Plant<-ordered(Top_Bac_subset3_use_taxo$Plant, levels=c("Carrot", "Great Masterwort", "Sunflower", "Alliaria petiolata", "Arabidopsis thaliana", "Barbarea vulgaris ", "Berteroa incana", "Brassica nigra", "Broccoli", "Cabbage", "Capsella bursa-pastoris", "Cardamine hirsuta", "Cauliflower", "Erophila verna ", "Garden rocket", "Radish", "Rapeseed", "Rorippa sylvestris", "Sinapis arvensis", "Turnip", "Pincushion Flower", "Heliosperma alpestre", "Grass of Parnassus", "Melon","Alfalfa", "Bean","Hairy vetch", "Medicago truncatula","Pea", "Oak", "Chiltern Gentian", "Willow Gentian", "Eyebright", "Phelipanche ramosa", "Rhinanthus glacialis", "Dahurian wildrye", "Festuca rubra", "Lolium arundinacea", "Lolium perenne", "Oat", "Rice", "Setaria pumila", "Setaria viridis", "Siberian wildrye", "Wheat", "Tobacco", "Tomato"))
 
@@ -1092,7 +1086,7 @@ theme(legend.position="bottom") + theme_classic()+ theme(axis.title.y = element_
 plot_ridge_16S
 ```
 
-###Make color band for plant species that goes on top of Fig5 for 16S
+### Make color band for plant species that goes on top of Fig5 for 16S
 ```{r}
 color=c("Carrot"="#ee8332", "Great Masterwort"="#f0810F", "Sunflower"="#fec767", "Alliaria petiolata"="#4a1777", "Arabidopsis thaliana"="#835e9f", "Barbarea vulgaris "="#baa5c8", "Berteroa incana"=	"#ceaac4", "Brassica nigra"="#a96699", "Broccoli"="#aea9ca", "Cabbage"=	"#811770", "Capsella bursa-pastoris"="#6b66a3", "Cardamine hirsuta"="#1b2b7d", "Cauliflower"="#5892ae", "Erophila verna "=	"#5e87c5", "Garden rocket"="#67bde8", "Radish"="#4cb5f5", "Rapeseed"="#008bc4", "Rorippa sylvestris"="#3e8a89", "Sinapis arvensis"="#9abdbb", "Turnip"=	"#c5d6d6", "Pincushion Flower"="#e09aa5", "Heliosperma alpestre"="#ffceda", "Grass of Parnassus"="#d0425d", "Melon"=	"#FA6775","Alfalfa"=	"#e035d7", "Bean"=	"#e03581", "Hairy vetch"=	"#e035ac",
 "Medicago truncatula"=	"#b554a6", "Pea"=	"#68104d", "Oak"=	"#000000", "Chiltern Gentian"=	"#00a7b5", "Willow Gentian"="#15cd7e", "Eyebright"=	"#00bb9f", "Phelipanche ramosa"=	"#08ffda", "Rhinanthus glacialis"="#8eddad", "Dahurian wildrye"="#2fbd03","Festuca rubra"="#2E4600", "Lolium arundinacea"=	"#3c884c", "Lolium perenne"	="#72ae4f", "Oat"=	"#66ff00", "Rice"=	"#b2d24f", "Setaria pumila"=	"#c5cd77", "Setaria viridis"="#edf050", "Siberian wildrye"="#9ff76e", "Wheat"="#fdf351", "Tobacco"="#ff9b7c", "Tomato"="#ff2600", "Rorripa sylvestris"=	"#c473fa", "White Clover"="#8f868c", "Red Clover"="#dad7d9", "Creeping Bentgrass"="#bd9103") 
@@ -1103,8 +1097,8 @@ plant_band
 ```
 
 
-##For ITS
-###Import SV table with only the most prevalent bacterial taxa (>20 species)
+## For ITS
+### Import SV table with only the most prevalent bacterial taxa (>20 species)
 ```{r}
 meta2_ITS <- read.table("Metadata_ITS1_ITS2_withDivSubset2_Jan2021.txt", header=TRUE, check.names = FALSE, sep = "\t")
 Top_Fun_subset3<-read.table("Subset3-ITS1_table-FINAL-rarefied-mostprevalent16.txt", header=TRUE, check.names = FALSE, sep = "\t")
@@ -1115,7 +1109,7 @@ dim(Top_Fun_subset3)
 
 ```
 
-###Transform matrix into long table format
+### Transform matrix into long table format
 ```{r}
 library(reshape2)
 Top_Fun_subset3_long=setNames(melt(Top_Fun_subset3), c('SampleID', 'Taxon', 'Relative_Abundance'))
@@ -1130,7 +1124,7 @@ dim(Top_Fun_subset3_use)
 head(Top_Fun_subset3_use)
 ```
 
-##Merge long format table with taxonomic info for each SV
+## Merge long format table with taxonomic info for each SV
 ```{r}
 taxo<-read.table("Subset1-2_All_studies_merged_ITS1_taxonomy.tsv", header=TRUE, check.names = FALSE, sep = "\t")
 Top_Fun_subset3_use_taxo<-merge(Top_Fun_subset3_use,taxo,by="Taxon")
@@ -1139,7 +1133,7 @@ dim(Top_Fun_subset3_use_taxo)
 head(Top_Fun_subset3_use_taxo)
 ```
 
-##Figure 5C - Plotting ITS most prevalent taxa (n=14) with ggridge
+## Figure 5C - Plotting ITS most prevalent taxa (n=14) with ggridge
 ```{r}
 Top_Fun_subset3_use_taxo$Plant<-ordered(Top_Fun_subset3_use_taxo$Plant, levels=c("Carrot", "Great Masterwort", "Sunflower", "Alliaria petiolata", "Arabidopsis thaliana", "Barbarea vulgaris ", "Berteroa incana", "Brassica nigra", "Broccoli", "Cabbage", "Capsella bursa-pastoris", "Cardamine hirsuta", "Cauliflower", "Erophila verna ", "Garden rocket", "Radish", "Rapeseed","Rorripa sylvestris",  "Sinapis arvensis", "Turnip", "Pincushion Flower", "Heliosperma alpestre", "Grass of Parnassus","Alfalfa", "Bean","Hairy vetch", "Medicago truncatula","Pea", "Red Clover", "White Clover", "Oak", "Chiltern Gentian", "Willow Gentian", "Eyebright","Phelipanche ramosa", "Rhinanthus glacialis","Creeping Bentgrass","Dahurian wildrye", "Oat", "Rice","Siberian wildrye","Wheat", "Tomato"))
 
@@ -1156,7 +1150,7 @@ plot_ridge_ITS
 
 ```
 
-###Make color band for plant species that goes on top of Fig5 for ITS
+### Make color band for plant species that goes on top of Fig5 for ITS
 ```{r}
 color=c("Carrot"="#ee8332", "Great Masterwort"="#f0810F", "Sunflower"="#fec767", "Alliaria petiolata"="#4a1777", "Arabidopsis thaliana"="#835e9f", "Barbarea vulgaris "="#baa5c8", "Berteroa incana"=	"#ceaac4", "Brassica nigra"="#a96699", "Broccoli"="#aea9ca", "Cabbage"=	"#811770", "Capsella bursa-pastoris"="#6b66a3", "Cardamine hirsuta"="#1b2b7d", "Cauliflower"="#5892ae", "Erophila verna "=	"#5e87c5", "Garden rocket"="#67bde8", "Radish"="#4cb5f5", "Rapeseed"="#008bc4", "Rorippa sylvestris"="#3e8a89", "Sinapis arvensis"="#9abdbb", "Turnip"=	"#c5d6d6", "Pincushion Flower"="#e09aa5", "Heliosperma alpestre"="#ffceda", "Grass of Parnassus"="#d0425d", "Melon"=	"#FA6775","Alfalfa"=	"#e035d7", "Bean"=	"#e03581", "Hairy vetch"=	"#e035ac",
 "Medicago truncatula"=	"#b554a6", "Pea"=	"#68104d", "Oak"=	"#000000", "Chiltern Gentian"=	"#00a7b5", "Willow Gentian"="#15cd7e", "Eyebright"=	"#00bb9f", "Phelipanche ramosa"=	"#08ffda", "Rhinanthus glacialis"="#8eddad", "Dahurian wildrye"="#2fbd03","Festuca rubra"="#2E4600", "Lolium arundinacea"=	"#3c884c", "Lolium perenne"	="#72ae4f", "Oat"=	"#66ff00", "Rice"=	"#b2d24f", "Setaria pumila"=	"#c5cd77", "Setaria viridis"="#edf050", "Siberian wildrye"="#9ff76e", "Wheat"="#fdf351", "Tobacco"="#ff9b7c", "Tomato"="#ff2600", "Rorripa sylvestris"=	"#c473fa", "White Clover"="#8f868c", "Red Clover"="#dad7d9", "Creeping Bentgrass"="#bd9103")
@@ -1167,8 +1161,8 @@ plant_band
 ```
 
 
-##For gyrB
-###Import SV table with only the most prevalent bacterial taxa (>12 species)
+## For gyrB
+### Import SV table with only the most prevalent bacterial taxa (>12 species)
 ```{r}
 meta2_gyrB <- read.table("Metadata_gyrB_withDivSubset2_Jan2021.txt", header=TRUE, check.names = FALSE, sep = "\t")
 Top_Bac2_subset3<-read.table("Subset3-gyrB-MiSeq_table-FINAL-rarefied-18mostprevalent.txt", header=TRUE, check.names = FALSE, sep = "\t")
@@ -1179,7 +1173,7 @@ dim(Top_Bac2_subset3)
 
 ```
 
-###Transform matrix into long table format
+### Transform matrix into long table format
 ```{r}
 library(reshape2)
 Top_Bac2_subset3_long=setNames(melt(Top_Bac2_subset3), c('SampleID', 'Taxon', 'Relative_Abundance'))
@@ -1194,7 +1188,7 @@ dim(Top_Bac2_subset3_use)
 head(Top_Bac2_subset3_use)
 ```
 
-##Merge long format table with taxonomic info for each SV
+## Merge long format table with taxonomic info for each SV
 ```{r}
 taxo<-read.table("Subset1-2_All_studies_merged_gyrB-rep-seqs-FINAL-filtered-taxonomy-final.tsv", header=TRUE, check.names = FALSE, sep = "\t")
 Top_Bac2_subset3_use_taxo<-merge(Top_Bac2_subset3_use,taxo,by="Taxon")
@@ -1205,7 +1199,7 @@ head(Top_Bac2_subset3_use_taxo)
 
 
 
-##Figure 5B - Plotting gyrB most prevalent taxa (n=18) with ggridge
+## Figure 5B - Plotting gyrB most prevalent taxa (n=18) with ggridge
 ```{r}
 Top_Bac2_subset3_use_taxo$Plant<-ordered(Top_Bac2_subset3_use_taxo$Plant, levels=c("Carrot", "Alliaria petiolata", "Arabidopsis thaliana", "Barbarea vulgaris ", "Berteroa incana", "Brassica nigra", "Broccoli", "Cabbage", "Capsella bursa-pastoris", "Cardamine hirsuta", "Cauliflower", "Erophila verna ", "Garden rocket", "Radish", "Rapeseed", "Sinapis arvensis", "Turnip", "Melon", "Bean", "Medicago truncatula", "Tomato"))
 
@@ -1225,7 +1219,7 @@ plot_ridge_gyrB
 
 ```
 
-###Make color band for plant species that goes on top of Fig5 for gyrB
+### Make color band for plant species that goes on top of Fig5 for gyrB
 ```{r}
 color=c("Carrot"="#ee8332", "Great Masterwort"="#f0810F", "Sunflower"="#fec767", "Alliaria petiolata"="#4a1777", "Arabidopsis thaliana"="#835e9f", "Barbarea vulgaris "="#baa5c8", "Berteroa incana"=	"#ceaac4", "Brassica nigra"="#a96699", "Broccoli"="#aea9ca", "Cabbage"=	"#811770", "Capsella bursa-pastoris"="#6b66a3", "Cardamine hirsuta"="#1b2b7d", "Cauliflower"="#5892ae", "Erophila verna "=	"#5e87c5", "Garden rocket"="#67bde8", "Radish"="#4cb5f5", "Rapeseed"="#008bc4", "Rorippa sylvestris"="#3e8a89", "Sinapis arvensis"="#9abdbb", "Turnip"=	"#c5d6d6", "Pincushion Flower"="#e09aa5", "Heliosperma alpestre"="#ffceda", "Grass of Parnassus"="#d0425d", "Melon"=	"#FA6775","Alfalfa"=	"#e035d7", "Bean"=	"#e03581", "Hairy vetch"=	"#e035ac",
 "Medicago truncatula"=	"#b554a6", "Pea"=	"#68104d", "Oak"=	"#000000", "Chiltern Gentian"=	"#00a7b5", "Willow Gentian"="#15cd7e", "Eyebright"=	"#00bb9f", "Phelipanche ramosa"=	"#08ffda", "Rhinanthus glacialis"="#8eddad", "Dahurian wildrye"="#2fbd03","Festuca rubra"="#2E4600", "Lolium arundinacea"=	"#3c884c", "Lolium perenne"	="#72ae4f", "Oat"=	"#66ff00", "Rice"=	"#b2d24f", "Setaria pumila"=	"#c5cd77", "Setaria viridis"="#edf050", "Siberian wildrye"="#9ff76e", "Wheat"="#fdf351", "Tobacco"="#ff9b7c", "Tomato"="#ff2600", "Rorripa sylvestris"=	"#c473fa", "White Clover"="#8f868c", "Red Clover"="#dad7d9", "Creeping Bentgrass"="#bd9103")
@@ -1243,10 +1237,10 @@ plant_band
 ###########################################################################################################
 
 
-#Figure 6 - Plant-specific patterns in community composition/structure 
+# Figure 6 - Plant-specific patterns in community composition/structure 
 
-##Figure 6 Panels C and D - Bargarphs taxonomy by plant
-##16S V4: Import Subset 2 dataset (rarefied by study)
+## Figure 6 Panels C and D - Bargarphs taxonomy by plant
+## 16S V4: Import Subset 2 dataset (rarefied by study)
 ```{r}
 meta2 <- read.table("Metadata_16S_V4_V5V6_withDivSubset2_Jan2021.txt", header=TRUE, check.names = FALSE, sep = "\t")
 Subset2_16S<-read.table("Subset2-All_studies_merged_16S_table-FINAL-V4-MiSeq-filtered-transposed.txt", header=TRUE, check.names = FALSE, sep = "\t")
@@ -1269,7 +1263,7 @@ dim(matrix_16S)
 head(matrix_16S)
 ```
 
-###Prepare phyloseq object
+### Prepare phyloseq object
 ```{r}
 library(microbiome)
 ##Convert data as phyloseq object
@@ -1282,9 +1276,7 @@ meta_16S=SV_16S_use1[c(1:35)]
 META_16S=sample_data(meta_16S)
 physeq_16S = phyloseq(OTU_16S, TAXO_16S,META_16S)
 physeq_16S
-
 ```
-
 
 ```{r}
 library(phyloseq)
@@ -1304,7 +1296,7 @@ glom16S2
 data_glom16S<- psmelt(glom16S2) # create dataframe from phyloseq object
 data_glom16S$Phylum <- as.character(data_glom16S$Phylum) #convert to character
 
-#Recreate the Plant and Study_ID columns lost during sample merging
+### Recreate the Plant and Study_ID columns lost during sample merging
 library(stringr)
 col16S=str_split_fixed(data_glom16S$Sample, "--", 2)
 col16S=data.frame(col16S)
@@ -1324,7 +1316,7 @@ Count
 #write.table(data_glom16S, file = "Subset2-16S-V4-table_glom_phylum.txt", sep = "\t")
 ```
 
-#Figure 6C: Bar graph 16S taxonomy
+# Figure 6C: Bar graph 16S taxonomy
 ```{r}
 data_glom_16S3$Plant2<-ordered(data_glom_16S3$Plant2, levels=c("Carrot", "Great Masterwort", "Sunflower", "Alliaria petiolata", "Arabidopsis thaliana", "Barbarea vulgaris ", "Berteroa incana", "Brassica nigra", "Broccoli", "Cabbage", "Capsella bursa-pastoris", "Cardamine hirsuta", "Cauliflower", "Erophila verna ", "Garden rocket", "Radish", "Rapeseed", "Rorippa sylvestris", "Sinapis arvensis", "Turnip", "Pincushion Flower", "Heliosperma alpestre", "Grass of Parnassus", "Melon","Alfalfa", "Bean","Hairy vetch", "Medicago truncatula","Pea", "Oak", "Chiltern Gentian", "Willow Gentian", "Eyebright", "Phelipanche ramosa", "Rhinanthus glacialis", "Dahurian wildrye", "Festuca rubra", "Lolium arundinacea", "Lolium perenne", "Oat", "Rice", "Setaria pumila", "Setaria viridis", "Siberian wildrye", "Wheat", "Tobacco", "Tomato"))
 
@@ -1340,7 +1332,7 @@ f5_16S
 ```
 
 
-###For ITS Import Subset 2 dataset (rarefied by study)
+## For ITS Import Subset 2 dataset (rarefied by study)
 ```{r}
 meta2 <- read.table("Metadata_ITS1_ITS2_withDivSubset2_Jan2021.txt", header=TRUE, check.names = FALSE, sep = "\t")
 Subset2_ITS1<-read.table("Subset2-ITS1region_table-FINAL-rarefied-transposed.txt", header=TRUE, check.names = FALSE, sep = "\t")
@@ -1363,7 +1355,7 @@ dim(matrix_ITS)
 head(matrix_ITS)
 ```
 
-###Prepare phyloseq object
+### Prepare phyloseq object
 ```{r}
 library(microbiome)
 ##Convert data as phyloseq object
@@ -1416,7 +1408,7 @@ Count
 
 ```
 
-#Figure 6D - Bar graph IST1 taxonomy
+# Figure 6D - Bar graph IST1 taxonomy
 ```{r}
 data_glomITS2$Plant2<-ordered(data_glomITS2$Plant2, levels=c("Carrot", "Great Masterwort", "Alliaria petiolata", "Arabidopsis thaliana", "Barbarea vulgaris ", "Berteroa incana", "Brassica nigra", "Broccoli", "Cabbage", "Capsella bursa-pastoris", "Cardamine hirsuta", "Cauliflower", "Erophila verna ", "Garden_rocket", "Radish", "Rapeseed", "Rorripa sylvestris", "Sinapis arvensis", "Turnip", "Pincushion Flower", "Heliosperma alpestre", "Grass of Parnassus", "Bean", "Medicago truncatula","White Clover", "Oak", "Chiltern Gentian", "Willow Gentian", "Eyebright", "Phelipanche ramosa", "Rhinanthus glacialis", "Wheat", "Tomato"))
 
@@ -1433,7 +1425,7 @@ f5_ITS
 ```
 
 
-##Figure 6 panels C & D combined bargraph for 16S and ITS
+## Figure 6 panels C & D combined bargraph for 16S and ITS
 ```{r}
 library(ggpubr)
 figure6CD=ggarrange(f5_16S, f5_ITS,labels = c("A", "B"), ncol = 2, widths = c(1.2, 1))
@@ -1441,9 +1433,9 @@ figure6CD
 ```
 
 
-#Figure 6 Part 1 - Beta div - Performed on Subset 3 because needs to be perfomed on common distance matrix
+# Figure 6 Part 1 - Beta div - Performed on Subset 3 because needs to be perfomed on common distance matrix
 
-###Import Subset 3 dataset (rarefied across all studies) - ITS
+### Import Subset 3 dataset (rarefied across all studies) - ITS
 ```{r}
 meta2 <- read.table("Metadata_ITS1_ITS2_withDivSubset2_Jan2021.txt", header=TRUE, check.names = FALSE, sep = "\t")
 Subset3_ITS1<-read.table("Subset3-ITS1_table-FINAL-rarefied-transposed.txt", header=TRUE, check.names = FALSE, sep = "\t")
@@ -1467,7 +1459,7 @@ head(matrix3_ITS)
 ```
 
 
-##Make phyloseq object
+## Make phyloseq object
 ```{r}
 library(microbiome)
 ##Convert data as phyloseq object
@@ -1480,7 +1472,7 @@ physeq_ITS_Subset3
 
 ```
 
-##Figure 6B - ITS Plot PCoA on all samples - Bray-Curtis
+## Figure 6B - ITS Plot PCoA on all samples - Bray-Curtis
 ```{r}
 color=c("Carrot"="#ee8332", "Great Masterwort"="#f0810F", "Sunflower"="#fec767", "Alliaria petiolata"="#4a1777", "Arabidopsis thaliana"="#835e9f", "Barbarea vulgaris "="#baa5c8", "Berteroa incana"=	"#ceaac4", "Brassica nigra"="#a96699", "Broccoli"="#aea9ca", "Cabbage"=	"#811770", "Capsella bursa-pastoris"="#6b66a3", "Cardamine hirsuta"="#1b2b7d", "Cauliflower"="#5892ae", "Erophila verna "=	"#5e87c5", "Garden rocket"="#67bde8", "Radish"="#4cb5f5", "Rapeseed"="#008bc4", "Rorippa sylvestris"="#3e8a89", "Sinapis arvensis"="#9abdbb", "Turnip"=	"#c5d6d6", "Pincushion Flower"="#e09aa5", "Heliosperma alpestre"="#ffceda", "Grass of Parnassus"="#d0425d", "Melon"=	"#FA6775","Alfalfa"=	"#e035d7", "Bean"=	"#e03581", "Hairy vetch"=	"#e035ac",
 "Medicago truncatula"=	"#b554a6", "Pea"=	"#68104d", "Oak"=	"#000000", "Chiltern Gentian"=	"#00a7b5", "Willow Gentian"="#15cd7e", "Eyebright"=	"#00bb9f", "Phelipanche ramosa"=	"#08ffda", "Rhinanthus glacialis"="#8eddad", "Dahurian wildrye"="#2fbd03","Festuca rubra"="#2E4600", "Lolium arundinacea"=	"#3c884c", "Lolium perenne"	="#72ae4f", "Oat"=	"#66ff00", "Rice"=	"#b2d24f", "Setaria pumila"=	"#c5cd77", "Setaria viridis"="#edf050", "Siberian wildrye"="#9ff76e", "Wheat"="#fdf351", "Tobacco"="#ff9b7c", "Tomato"="#ff2600", "Rorripa sylvestris"=	"#c473fa", "White Clover"="#8f868c", "Red Clover"="#dad7d9", "Creeping Bentgrass"="#bd9103") 
@@ -1489,7 +1481,7 @@ b3 = plot_ordination(physeq_ITS_Subset3, ITS.ord, type="samples", color="Plant",
 b3
 ```
 
-###Import Subset 3 dataset (rarefied across all studies) - 16S
+### Import Subset 3 dataset (rarefied across all studies) - 16S
 ```{r}
 Subset3_16S <- read.table("Subset3-16S-V4-table-FINAL-rarefied-transposed.txt", header=TRUE, check.names = FALSE, sep = "\t")
 meta2 <- read.table("Metadata_16S_V4_V5V6_withDivSubset2_Jan2021.txt", header=TRUE, check.names = FALSE, sep = "\t")
@@ -1509,7 +1501,7 @@ dim(matrix3_16S)
 head(matrix3_16S)
 ```
 
-##Make phyloseq object
+## Make phyloseq object
 ```{r}
 library(microbiome)
 ##Convert data as phyloseq object
@@ -1521,7 +1513,7 @@ physeq_16S_Subset3 = phyloseq(OTU_16S_subset3,META_16S_Subset3)
 physeq_16S_Subset3
 ```
 
-##Figure 6A - 16S Plot PCoA on all samples - Bray-Curtis
+## Figure 6A - 16S Plot PCoA on all samples - Bray-Curtis
 ```{r}
 bac.ord <- ordinate(physeq_16S_Subset3, "PCoA", "bray")
 b1z = plot_ordination(physeq_16S_Subset3, bac.ord, type="samples", color="Plant", shape="Seed_fraction", title="16S rRNA gene region - Bacteria & Archaea (Bray-Curtis)")+ scale_color_manual(values=color)+theme_classic(base_size = 12)+ theme(axis.title = element_text(color="black", size=14, face="bold"))+ theme(axis.text = element_text(color="black", size=12, face="bold"))+ theme(legend.text = element_text(colour="black", size = 8, face = "bold"))+ theme(legend.title = element_text(colour="black", size=7, face="bold"))+theme(legend.position = "none")+theme(plot.title = element_text(hjust = 0.5, face="bold"))+scale_shape_manual(values=c(3, 1,2, 16))+xlab("PCoA1 = 15.8%")+ylab("PCoA2 = 11.2%")+scale_y_continuous(limits = c(-0.12, 0.2))
@@ -1529,16 +1521,15 @@ print(b1z)
 ```
 
 
-#Make Fig 6 panel A & B ordinations
+# Make Fig 6 panel A & B ordinations
 ```{r}
 library(ggpubr)
 figure6AB=ggarrange(b1z, b3,labels = c("A", "B"), ncol = 2)
 figure6AB
 ```
 
-#Figure S10 Picrust2 on 16S and gyrB datasets
-
-###Import Picrust2 KOs Subset 1 dataset - 16S-V4
+# Figure S10 Picrust2 on 16S and gyrB datasets
+### Import Picrust2 KOs Subset 1 dataset - 16S-V4
 ```{r}
 Subset3_16S_picrust <- read.table("16S_Subset1_KOs_pred_metagenome_unstrat.tsv", header=TRUE, check.names = FALSE, sep = "\t")
 meta2 <- read.table("Metadata_16S_V4_V5V6_withDivSubset2_Jan2021.txt", header=TRUE, check.names = FALSE, sep = "\t")
@@ -1561,7 +1552,7 @@ head(matrix3_16S_picrust)
 ```
 
 
-##Make phyloseq object
+## Make phyloseq object
 ```{r}
 library(microbiome)
 ##Convert data as phyloseq object
@@ -1573,7 +1564,7 @@ physeq_16S_picrust_Subset3 = phyloseq(OTU_16S_picrust_subset3,META_16S_picrust_S
 physeq_16S_picrust_Subset3
 ```
 
-##Figure S10A - Picrust 16S Plot PCoA on all samples - Bray-Curtis
+## Figure S10A - Picrust 16S Plot PCoA on all samples - Bray-Curtis
 ```{r}
 color=c("Carrot"="#ee8332", "Great Masterwort"="#f0810F", "Sunflower"="#fec767", "Alliaria petiolata"="#4a1777", "Arabidopsis thaliana"="#835e9f", "Barbarea vulgaris "="#baa5c8", "Berteroa incana"=	"#ceaac4", "Brassica nigra"="#a96699", "Broccoli"="#aea9ca", "Cabbage"=	"#811770", "Capsella bursa-pastoris"="#6b66a3", "Cardamine hirsuta"="#1b2b7d", "Cauliflower"="#5892ae", "Erophila verna "=	"#5e87c5", "Garden rocket"="#67bde8", "Radish"="#4cb5f5", "Rapeseed"="#008bc4", "Rorippa sylvestris"="#3e8a89", "Sinapis arvensis"="#9abdbb", "Turnip"=	"#c5d6d6", "Pincushion Flower"="#e09aa5", "Heliosperma alpestre"="#ffceda", "Grass of Parnassus"="#d0425d", "Melon"=	"#FA6775","Alfalfa"=	"#e035d7", "Bean"=	"#e03581", "Hairy vetch"=	"#e035ac",
 "Medicago truncatula"=	"#b554a6", "Pea"=	"#68104d", "Oak"=	"#000000", "Chiltern Gentian"=	"#00a7b5", "Willow Gentian"="#15cd7e", "Eyebright"=	"#00bb9f", "Phelipanche ramosa"=	"#08ffda", "Rhinanthus glacialis"="#8eddad", "Dahurian wildrye"="#2fbd03","Festuca rubra"="#2E4600", "Lolium arundinacea"=	"#3c884c", "Lolium perenne"	="#72ae4f", "Oat"=	"#66ff00", "Rice"=	"#b2d24f", "Setaria pumila"=	"#c5cd77", "Setaria viridis"="#edf050", "Siberian wildrye"="#9ff76e", "Wheat"="#fdf351", "Tobacco"="#ff9b7c", "Tomato"="#ff2600", "Rorripa sylvestris"=	"#c473fa", "White Clover"="#8f868c", "Red Clover"="#dad7d9", "Creeping Bentgrass"="#bd9103") 
@@ -1583,16 +1574,15 @@ print(pic2)
 ```
 
 
-##16 KO richness by sample
+## 16S KO richness by sample
 ```{r}
 # KO richness (S) 
 library(vegan)
 S <- specnumber(matrix3_16S_picrust) 
 Subset3_16S_picrust_use=cbind(Subset3_16S_picrust_use,S)
-
 ```
-+geom_vline(aes(xintercept = median_observed_otus_plant, group = Plant, colour = Plant))
-###Plot Richness (S) 
+
+### Plot Richness (S) 
 ```{r warning=FALSE}
 library(ggplot2)
 color=c("Carrot"="#ee8332", "Great Masterwort"="#f0810F", "Sunflower"="#fec767", "Alliaria petiolata"="#4a1777", "Arabidopsis thaliana"="#835e9f", "Barbarea vulgaris "="#baa5c8", "Berteroa incana"=	"#ceaac4", "Brassica nigra"="#a96699", "Broccoli"="#aea9ca", "Cabbage"=	"#811770", "Capsella bursa-pastoris"="#6b66a3", "Cardamine hirsuta"="#1b2b7d", "Cauliflower"="#5892ae", "Erophila verna "=	"#5e87c5", "Garden rocket"="#67bde8", "Radish"="#4cb5f5", "Rapeseed"="#008bc4", "Rorippa sylvestris"="#3e8a89", "Sinapis arvensis"="#9abdbb", "Turnip"=	"#c5d6d6", "Pincushion Flower"="#e09aa5", "Heliosperma alpestre"="#ffceda", "Grass of Parnassus"="#d0425d", "Melon"=	"#FA6775","Alfalfa"=	"#e035d7", "Bean"=	"#e03581", "Hairy vetch"=	"#e035ac",
@@ -1607,7 +1597,7 @@ p4
 
 
 
-###Import Picrust2 KOs Subset 3 dataset (rarefied across all studies) - gyrB
+### Import Picrust2 KOs Subset 3 dataset (rarefied across all studies) - gyrB
 ```{r}
 Subset3_gyrB_picrust <- read.table("Subset1_gyrB_KO_pred_metagenome_unstrat.tsv", header=TRUE, check.names = FALSE, sep = "\t")
 meta2 <- read.table("Metadata_gyrB_withDivSubset2_Jan2021.txt", header=TRUE, check.names = FALSE, sep = "\t")
@@ -1627,7 +1617,7 @@ dim(matrix3_gyrB_picrust)
 head(matrix3_gyrB_picrust)
 ```
 
-##Make phyloseq object
+## Make phyloseq object
 ```{r}
 library(microbiome)
 ##Convert data as phyloseq object
@@ -1639,7 +1629,7 @@ physeq_gyrB_picrust_Subset3 = phyloseq(OTU_gyrB_picrust_subset3,META_gyrB_picrus
 physeq_gyrB_picrust_Subset3
 ```
 
-##Subset with 3 main plant species
+## Subset with 3 main plant species
 ```{r}
 #create subset with only plant species with min 3 independent studies and 50 samples
 Species = c("Radish", "Rapeseed", "Bean")
@@ -1648,7 +1638,7 @@ physeq_gyrB_picrust_Subset3_Core2=prune_taxa(taxa_sums(physeq_gyrB_picrust_Subse
 physeq_gyrB_picrust_Subset3_Core2
 ```
 
-##Figure S10B - Picrust gyrB Plot PCoA on all samples - Bray-Curtis
+## Figure S10B - Picrust gyrB Plot PCoA on all samples - Bray-Curtis
 ```{r}
 color=c("Carrot"="#ee8332", "Great Masterwort"="#f0810F", "Sunflower"="#fec767", "Alliaria petiolata"="#4a1777", "Arabidopsis thaliana"="#835e9f", "Barbarea vulgaris "="#baa5c8", "Berteroa incana"=	"#ceaac4", "Brassica nigra"="#a96699", "Broccoli"="#aea9ca", "Cabbage"=	"#811770", "Capsella bursa-pastoris"="#6b66a3", "Cardamine hirsuta"="#1b2b7d", "Cauliflower"="#5892ae", "Erophila verna "=	"#5e87c5", "Garden rocket"="#67bde8", "Radish"="#4cb5f5", "Rapeseed"="#008bc4", "Rorippa sylvestris"="#3e8a89", "Sinapis arvensis"="#9abdbb", "Turnip"=	"#c5d6d6", "Pincushion Flower"="#e09aa5", "Heliosperma alpestre"="#ffceda", "Grass of Parnassus"="#d0425d", "Melon"=	"#FA6775","Alfalfa"=	"#e035d7", "Bean"=	"#e03581", "Hairy vetch"=	"#e035ac",
 "Medicago truncatula"=	"#b554a6", "Pea"=	"#68104d", "Oak"=	"#000000", "Chiltern Gentian"=	"#00a7b5", "Willow Gentian"="#15cd7e", "Eyebright"=	"#00bb9f", "Phelipanche ramosa"=	"#08ffda", "Rhinanthus glacialis"="#8eddad", "Dahurian wildrye"="#2fbd03","Festuca rubra"="#2E4600", "Lolium arundinacea"=	"#3c884c", "Lolium perenne"	="#72ae4f", "Oat"=	"#66ff00", "Rice"=	"#b2d24f", "Setaria pumila"=	"#c5cd77", "Setaria viridis"="#edf050", "Siberian wildrye"="#9ff76e", "Wheat"="#fdf351", "Tobacco"="#ff9b7c", "Tomato"="#ff2600", "Rorripa sylvestris"=	"#c473fa", "White Clover"="#8f868c", "Red Clover"="#dad7d9", "Creeping Bentgrass"="#bd9103") 
@@ -1658,7 +1648,7 @@ print(pic2)
 ```
 
 
-##gyrB KO richness by sample
+## gyrB KO richness by sample
 ```{r}
 # KO richness (S) 
 library(vegan)
@@ -1667,7 +1657,7 @@ Subset3_gyrB_picrust_use=cbind(Subset3_gyrB_picrust_use,S)
 
 ```
 
-###Plot Richness (S)  KO gyrB
+### Plot Richness (S)  KO gyrB
 ```{r warning=FALSE}
 library(ggplot2)
 color=c("Carrot"="#ee8332", "Great Masterwort"="#f0810F", "Sunflower"="#fec767", "Alliaria petiolata"="#4a1777", "Arabidopsis thaliana"="#835e9f", "Barbarea vulgaris "="#baa5c8", "Berteroa incana"=	"#ceaac4", "Brassica nigra"="#a96699", "Broccoli"="#aea9ca", "Cabbage"=	"#811770", "Capsella bursa-pastoris"="#6b66a3", "Cardamine hirsuta"="#1b2b7d", "Cauliflower"="#5892ae", "Erophila verna "=	"#5e87c5", "Garden rocket"="#67bde8", "Radish"="#4cb5f5", "Rapeseed"="#008bc4", "Rorippa sylvestris"="#3e8a89", "Sinapis arvensis"="#9abdbb", "Turnip"=	"#c5d6d6", "Pincushion Flower"="#e09aa5", "Heliosperma alpestre"="#ffceda", "Grass of Parnassus"="#d0425d", "Melon"=	"#FA6775","Alfalfa"=	"#e035d7", "Bean"=	"#e03581", "Hairy vetch"=	"#e035ac",
@@ -1683,7 +1673,7 @@ p4
 
 
 
-#Figure 7 Core & Flexible taxa by plant species
+# Figure 7 Core & Flexible taxa by plant species
 
 ## Load 16S-V4 Subset 3 and transform to long format for DB Browser
 
@@ -1693,7 +1683,7 @@ head(Subset3_16S)
 dim(Subset3_16S)
 
 ```
-##Convert Subset 3 table to long format for DB Browser
+## Convert Subset 3 table to long format for DB Browser
 ```{r}
 library(reshape2)
 Subset3_16S_long=setNames(melt(Subset2_16S), c("SampleID", 'SV', 'Count'))
@@ -1702,17 +1692,14 @@ dim(Subset3_16S_long)
 #write.table(Subset3_16S_long, "Subset3_16S_SVtable_long.txt")
 ```
 
-
-
-
-##gyrB SubSet3- core taxa analysis
+## gyrB SubSet3- core taxa analysis
 ```{r}
 Subset3_gyrB<-read.table("Subset3-gyrB-MiSeq_table-FINAL-rarefied-transposed.txt", header=TRUE, check.names = FALSE, sep = "\t")
 head(Subset3_gyrB)
 
 dim(Subset3_gyrB)
 ```
-##Convert Subset 3 table to long format for DB Browser
+## Convert Subset 3 table to long format for DB Browser
 ```{r}
 library(reshape2)
 Subset3_gyrB_long=setNames(melt(Subset3_gyrB), c("SampleID", 'SV', 'Count'))
@@ -1722,13 +1709,13 @@ dim(Subset3_gyrB_long)
 ```
 
 
-##ITS1 Subset3 - core taxa analysis
+## ITS1 Subset3 - core taxa analysis
 ```{r}
 Subset3_ITS<-read.table("Subset3-ITS1_table-FINAL-rarefied-transposed.txt", header=TRUE, check.names = FALSE, sep = "\t")
 head(Subset3_ITS)
 dim(Subset3_ITS)
 ```
-##Convert Subset 2 table to long format for DB Browser
+## Convert Subset 2 table to long format for DB Browser
 ```{r}
 library(reshape2)
 Subset3_ITS_long=setNames(melt(Subset3_ITS), c("SampleID", 'SV', 'Count'))
@@ -1737,7 +1724,7 @@ dim(Subset3_ITS_long)
 #write.table(Subset3_ITS_long, "Subset3_ITS_SVtable_long.txt")
 ```
 
-###In DB Browser SQl, run the following code to get the table for core taxa analysis
+### In DB Browser SQl, run the following code to get the table for core taxa analysis
 ```{r}
 #For example for the 16S-V4 dataset (16S_SV is the long table we have just prepared, 16S_meta is the metadata table)
 select t1.*, t2.sample_number_Plant, t2.count_sum_Plant  from
@@ -1763,8 +1750,8 @@ on t1.Plant = t2.Plant
 
 
 
-#Figure 7 - Part 1: SV rel abund and prev
-##Back in R: 16S-Import list core & flexible taxa for each plant species
+# Figure 7 - Part 1: SV rel abund and prev
+## Back in R: 16S-Import list core & flexible taxa for each plant species
 ```{r}
 Core_Flex_16S<-read.table("16S-V4_core_flexible_abund_prev.txt", header=TRUE, check.names = FALSE, sep = "\t")
 head(Core_Flex_16S)
@@ -1793,11 +1780,7 @@ pgyrB_core_flex=ggplot(data=Core_Flex_gyrB, aes(x=SV_Rel_Abund, y=SV_Prev,color=
 pgyrB_core_flex
 ```
 
-
-
-
-
-##ITS-Import list core & flexible taxa for each plant species
+## ITS-Import list core & flexible taxa for each plant species
 ```{r}
 Core_Flex_ITS<-read.table("ITS_core_flexible_taxa_abund_prev.txt", header=TRUE, check.names = FALSE, sep = "\t")
 head(Core_Flex_ITS)
@@ -1811,14 +1794,13 @@ pITS_core_flex=ggplot(data=Core_Flex_ITS, aes(x=SV_Rel_Abund, y=SV_Prev,color=Ty
 pITS_core_flex
 ```
 
-#Figure 7 - Part 2: Cumulative Rel Abund of core & flexible
-##16S- Cumulative values for core and flexible
+# Figure 7 - Part 2: Cumulative Rel Abund of core & flexible
+## 16S- Cumulative values for core and flexible
 ```{r}
 Core_Flex_16S_Cum<-read.table("16S-V4_core_flexible_taxa_cumulative.txt", header=TRUE, check.names = FALSE, sep = "\t")
 head(Core_Flex_16S_Cum)
 dim(Core_Flex_16S_Cum)
 ```
-
 
 ```{r}
 library(ggplot2)
@@ -1829,14 +1811,12 @@ p16S_core_flex2=ggplot(data=Core_Flex_16S_Cum, aes(x=Plant, y=Rel_abund_SV,fill=
 p16S_core_flex2
 ```
 
-
-##gyrB- Cumulative values for core and flexible
+## gyrB- Cumulative values for core and flexible
 ```{r}
 Core_Flex_gyrB_Cum<-read.table("gyrB_core_flexible_taxa_cumulative.txt", header=TRUE, check.names = FALSE, sep = "\t")
 head(Core_Flex_gyrB_Cum)
 dim(Core_Flex_gyrB_Cum)
 ```
-
 
 ```{r}
 library(ggplot2)
@@ -1847,7 +1827,7 @@ pgyrB_core_flex2=ggplot(data=Core_Flex_gyrB_Cum, aes(x=Plant, y=Rel_abund_SV,fil
 pgyrB_core_flex2
 ```
 
-##ITS- Cumulative values for core and flexible
+## ITS- Cumulative values for core and flexible
 ```{r}
 Core_Flex_ITS_Cum<-read.table("ITS_core_flexible_taxa_cumulative.txt", header=TRUE, check.names = FALSE, sep = "\t")
 head(Core_Flex_ITS_Cum)
@@ -1865,9 +1845,9 @@ pITS_core_flex2
 ```
 
 
-#Figure 7 - Part 3: Taxo Bar graph Core & Flexible
+# Figure 7 - Part 3: Taxo Bar graph Core & Flexible
 
-##16S-Merge Core & Flexible data with taxonomic info for each SV
+## 16S-Merge Core & Flexible data with taxonomic info for each SV
 ```{r}
 taxo<-read.table("Subset1-2_All_studies_merged_16S-rep-seqs-FINAL-V4-MiSeq-taxonomy.tsv", header=TRUE, check.names = FALSE, sep = "\t")
 Core_Flex_16S_taxo<-merge(Core_Flex_16S,taxo,by="SV")
@@ -1877,7 +1857,7 @@ head(Core_Flex_16S_taxo)
 
 
 
-##Figure 16S-V4 for CORE taxa
+## Figure 16S-V4 for CORE taxa
 ```{r}
 #Subset just core taxa
 library(ggplot2)
@@ -1908,10 +1888,7 @@ p16S_core_flex_tax=ggplot(data=Core_Flex_16S_taxo_core_ag, aes(x=Plant, y=SV_Rel
 p16S_core_flex_tax
 ```
 
-
-
-
-##gyrB-Merge Core & Flexible data with taxonomic info for each SV
+## gyrB-Merge Core & Flexible data with taxonomic info for each SV
 ```{r}
 taxo_gyrB<-read.table("Subset1-2_All_studies_merged_gyrB-rep-seqs-FINAL-filtered-taxonomy-final.tsv", header=TRUE, check.names = FALSE, sep = "\t")
 Core_Flex_gyrB_taxo<-merge(Core_Flex_gyrB,taxo_gyrB,by="SV")
@@ -1920,8 +1897,7 @@ head(Core_Flex_gyrB_taxo)
 ```
 
 
-
-##Figure gyrB for CORE taxa
+## Figure gyrB for CORE taxa
 ```{r}
 #Subset just core taxa
 library(ggplot2)
@@ -1952,7 +1928,7 @@ pgyrB_core_flex_tax
 ```
 
 
-##ITS-Merge Core & Flexible data with taxonomic info for each SV
+## ITS-Merge Core & Flexible data with taxonomic info for each SV
 ```{r}
 taxo_ITS<-read.table("Subset1-2_All_studies_merged_ITS1_taxonomy.tsv", header=TRUE, check.names = FALSE, sep = "\t")
 Core_Flex_ITS_taxo<-merge(Core_Flex_ITS,taxo_ITS,by="SV")
@@ -1962,7 +1938,7 @@ head(Core_Flex_ITS_taxo)
 
 
 
-##Figure ITS1 for CORE taxa
+## Figure ITS1 for CORE taxa
 ```{r}
 #Subset just core taxa
 library(ggplot2)
@@ -1992,7 +1968,7 @@ pITS_core_flex_tax=ggplot(data=Core_Flex_ITS_taxo_core_ag, aes(x=Plant, y=SV_Rel
 pITS_core_flex_tax
 ```
 
-#Final Figure 7 combined
+# Final Figure 7 combined
 ```{r}
 library(ggpubr)
 figure7=ggarrange(p16S_core_flex,pgyrB_core_flex,pITS_core_flex,p16S_core_flex2,pgyrB_core_flex2,pITS_core_flex2,p16S_core_flex_tax,pgyrB_core_flex_tax,pITS_core_flex_tax,labels = c("A", "B", "C", "D", "E", "F", "G", "H", "I"), ncol = 3, nrow=3, heights = c(1, 1, 1.5))
