@@ -1,4 +1,4 @@
-Code and Data associated to Simonin et al. 2021 BioRxiv Seed Microbiota: a Neglected Component of the Phytobiome Revealed by a Large-Scale Meta-Analysis
+Code and Data associated to Simonin et al. 2021 BioRxiv Seed Microbiota Revealed by a Large-Scale Meta-Analysis Including 50 Plant Species
 
 Authors: Marie SIMONIN, Martial BRIAND, Guillaume CHESNEAU, Aude ROCHEFORT, Coralie MARAIS, Alain SARNIGUET, Matthieu BARRET
  
