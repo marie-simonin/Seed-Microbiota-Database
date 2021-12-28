@@ -1163,7 +1163,7 @@ figure3CD
 ############################################################################################################
 #########################################################################################################
 
-# Figure 4: Abundance Occupancy curves (and Figure S8 and S9)
+# Figure 4: Abundance Occupancy curves (and Figure S9 and S10)
 ##Calculations and graphs for 16S - V4 gene On Subset 3
 ```{r}
 SV<-read.table("Subset3-16S-V4-table-FINAL-rarefied.txt", header=TRUE, check.names = FALSE, sep = "\t", row.names=1)
