@@ -84,6 +84,12 @@ Diversity_stat <- summarySE(Div16S, measurevar="observed_otus", groupvars=c("Pla
 library(dplyr) # Calculate median by plant
 Div16S <- Div16S %>% group_by(Plant) %>%mutate(median_observed_otus_plant = median(observed_otus))
 
+# Calculate stats by family
+stat_family=Div16S %>%
+  group_by(Family) %>%
+  summarise_each(funs(max, min, mean, median, sd), observed_otus)
+stat_family
+
 ```
 
 
@@ -97,6 +103,83 @@ p4=ggplot(data=Div16S, aes(x=observed_otus, y=Study_ID, color=Plant, shape=Seed_
   theme(plot.title = element_text(hjust = 0.5, face="bold", size=10))+ theme(panel.spacing.y = unit(0.2, "lines"))+ guides(col = guide_legend(ncol = 4))
 p4
 ```
+
+###Stat  effect of botanical family on ASV richness for all plants
+```{r}
+library(car)
+res <- leveneTest(observed_otus ~ Family, data = Div16S)
+res
+#the homogeneity of variances is not verified, so we will do a Kruskall Wallis test
+mod=kruskal.test(observed_otus ~ Family, data = Div16S) 
+mod
+wilcox=pairwise.wilcox.test(Div16S$observed_otus, Div16S$Family,
+                 p.adjust.method = "BH")
+library(rcompanion)
+Table2 = wilcox$p.value
+Table3 = fullPTable(Table2)
+library(multcompView)
+multcompLetters(Table3)
+```
+
+
+
+
+###Stat  effect of plant species on ASV richness for Rapeseed, Rice, Radish and Bean
+```{r}
+plants2 <- c("Radish","Bean", "Rapeseed", "Rice")
+Div16S_4species <- Div16S[Div16S$Plant %in% plants2,]
+dim(Div16S_4species)
+
+res <- leveneTest(observed_otus ~ Plant, data = Div16S_4species)
+res
+#the homogeneity of variances is not verified, so we will do a Kruskall Wallis test
+mod=kruskal.test(observed_otus ~ Plant, data = Div16S_4species) 
+mod
+wilcox=pairwise.wilcox.test(Div16S_4species$observed_otus, Div16S_4species$Plant,
+                 p.adjust.method = "BH")
+library(rcompanion)
+Table2 = wilcox$p.value
+Table3 = fullPTable(Table2)
+library(multcompView)
+multcompLetters(Table3)
+```
+## Figure richness of the 4 plant species
+```{r warning=FALSE}
+library(ggplot2)
+color=c("Carrot"="#ee8332", "Great Masterwort"="#f0810F", "Sunflower"="#fec767", "Alliaria petiolata"="#4a1777", "Arabidopsis thaliana"="#835e9f", "Barbarea vulgaris "="#baa5c8", "Berteroa incana"=	"#ceaac4", "Brassica nigra"="#a96699", "Broccoli"="#aea9ca", "Cabbage"=	"#811770", "Capsella bursa-pastoris"="#6b66a3", "Cardamine hirsuta"="#1b2b7d", "Cauliflower"="#5892ae", "Erophila verna "=	"#5e87c5", "Garden rocket"="#67bde8", "Radish"="#4cb5f5", "Rapeseed"="#008bc4", "Rorippa sylvestris"="#3e8a89", "Sinapis arvensis"="#9abdbb", "Turnip"=	"#c5d6d6", "Pincushion Flower"="#e09aa5", "Heliosperma alpestre"="#ffceda", "Grass of Parnassus"="#d0425d", "Melon"=	"#FA6775","Alfalfa"=	"#e035d7", "Bean"=	"#e03581", "Hairy vetch"=	"#e035ac",
+"Medicago truncatula"=	"#b554a6", "Pea"=	"#68104d", "Oak"=	"#000000", "Chiltern Gentian"=	"#00a7b5", "Willow Gentian"="#15cd7e", "Eyebright"=	"#00bb9f", "Phelipanche ramosa"=	"#08ffda", "Rhinanthus glacialis"="#8eddad", "Dahurian wildrye"="#2fbd03","Festuca rubra"="#2E4600", "Lolium arundinacea"=	"#3c884c", "Lolium perenne"	="#72ae4f", "Oat"=	"#66ff00", "Rice"=	"#b2d24f", "Setaria pumila"=	"#c5cd77", "Setaria viridis"="#edf050", "Siberian wildrye"="#9ff76e", "Wheat"="#fdf351", "Tobacco"="#ff9b7c", "Tomato"="#ff2600", "Rorripa sylvestris"=	"#c473fa", "White Clover"="#8f868c", "Red Clover"="#dad7d9", "Creeping Bentgrass"="#bd9103")
+p4b=ggplot(data=Div16S_4species, aes(x=Plant, y=observed_otus, color=Plant)) + geom_jitter( alpha=0.7)+geom_boxplot(alpha=0.2) +xlab("Plant Species ")+ylab("Observed ASV richness")+ theme_classic() + theme(axis.title = element_text(color="black", size=14, face="bold"))+ theme(axis.text = element_text(color="black", size=12, face="bold"))+ theme(legend.text = element_text(color="black", size=10, face="bold"))+ theme(legend.title = element_text(color="black", size=14, face="bold"))+scale_y_log10()+scale_color_manual(values=color)+ggtitle("16S rRNA gene - Bacteria & Archaea") +theme(plot.title = element_text(hjust = 0.5, face="bold", size=15))+theme(legend.position = "none")
+p4b
+```
+
+###Stat effect of plant family on ASV richness for Brassica, Faba, Oro, Poa
+```{r}
+families <- c("Brassicaceae","Fabaceae", "Orobanchaceae", "Poaceae")
+Div16S_4families <- Div16S[Div16S$Family %in% families,]
+dim(Div16S_4families)
+
+res <- leveneTest(observed_otus ~ Family, data = Div16S_4families)
+res
+#the homogeneity of variances is not verified, so we will do a Kruskall Wallis test
+mod=kruskal.test(observed_otus ~ Family, data = Div16S_4families) 
+mod
+wilcox=pairwise.wilcox.test(Div16S_4families$observed_otus, Div16S_4families$Family,
+                 p.adjust.method = "BH")
+library(rcompanion)
+Table2 = wilcox$p.value
+Table3 = fullPTable(Table2)
+library(multcompView)
+multcompLetters(Table3)
+```
+## Figure richness of the 4 plant families
+```{r warning=FALSE}
+library(ggplot2)
+color=c("Apiaceae"="#000000", "Brassicaceae"="#81edff", "Caprifoliaceae"="#8338ec", "Caryophyllaceae"="#ff7c43", "Celastraceae"="#a05195", "Fabaceae"="#f69cbd", "Fagaceae"=	"#90665f", "Gentianaceae"="#6f9d4b", "Orobanchaceae"="#affc41", "Poaceae"=	"#ffdd00", "Solanaceae"="#ff2600","Asteraceae"="grey", "Cucurbitaceae"="darkred") 
+p4b=ggplot(data=Div16S_4families, aes(x=Family, y=observed_otus, color=Family)) + geom_jitter( alpha=0.7)+geom_boxplot(alpha=0.2) +xlab("Plant Family")+ylab("Observed ASV richness")+ theme_classic() + theme(axis.title = element_text(color="black", size=14, face="bold"))+ theme(axis.text = element_text(color="black", size=12, face="bold"))+ theme(legend.text = element_text(color="black", size=10, face="bold"))+ theme(legend.title = element_text(color="black", size=14, face="bold"))+scale_y_log10()+scale_color_manual(values=color)+ggtitle("16S rRNA gene - Bacteria & Archaea") +theme(plot.title = element_text(hjust = 0.5, face="bold", size=15))+theme(legend.position = "none")
+p4b
+```
+
+
 
 
 ## gyrB Average SV richness all studies
@@ -118,6 +201,69 @@ p5=ggplot(data=DivgyrB, aes(x=observed_otus, y=Study_ID, color=Plant, shape=Seed
   theme(plot.title = element_text(hjust = 0.5, face="bold", size=10))
 p5
 ```
+
+###Stat  effect of botanical family or Plant on ASV richness for all plants
+```{r}
+library(car)
+res <- leveneTest(observed_otus ~ Plant, data = DivgyrB)
+res
+#the homogeneity of variances is not verified, so we will do a Kruskall Wallis test
+mod=kruskal.test(observed_otus ~ Plant, data = DivgyrB) 
+mod
+wilcox=pairwise.wilcox.test(DivgyrB$observed_otus, DivgyrB$Plant,
+                 p.adjust.method = "BH")
+library(rcompanion)
+Table2 = wilcox$p.value
+Table3 = fullPTable(Table2)
+library(multcompView)
+multcompLetters(Table3)
+```
+
+
+
+
+###Stat  effect of plant species on ASV richness for Rapeseed, Rice, Radish and Bean
+```{r}
+plants2 <- c("Radish","Bean", "Rapeseed")
+DivgyrB_4species <- DivgyrB[DivgyrB$Plant %in% plants2,]
+dim(DivgyrB_4species)
+
+res <- leveneTest(observed_otus ~ Plant, data = DivgyrB_4species)
+res
+#the homogeneity of variances is not verified, so we will do a Kruskall Wallis test
+mod=kruskal.test(observed_otus ~ Plant, data = DivgyrB_4species) 
+mod
+wilcox=pairwise.wilcox.test(DivgyrB_4species$observed_otus, DivgyrB_4species$Plant,
+                 p.adjust.method = "BH")
+library(rcompanion)
+Table2 = wilcox$p.value
+Table3 = fullPTable(Table2)
+library(multcompView)
+multcompLetters(Table3)
+```
+## Figure richness of the 4 plant species
+```{r warning=FALSE}
+library(ggplot2)
+color=c("Carrot"="#ee8332", "Great Masterwort"="#f0810F", "Sunflower"="#fec767", "Alliaria petiolata"="#4a1777", "Arabidopsis thaliana"="#835e9f", "Barbarea vulgaris "="#baa5c8", "Berteroa incana"=	"#ceaac4", "Brassica nigra"="#a96699", "Broccoli"="#aea9ca", "Cabbage"=	"#811770", "Capsella bursa-pastoris"="#6b66a3", "Cardamine hirsuta"="#1b2b7d", "Cauliflower"="#5892ae", "Erophila verna "=	"#5e87c5", "Garden rocket"="#67bde8", "Radish"="#4cb5f5", "Rapeseed"="#008bc4", "Rorippa sylvestris"="#3e8a89", "Sinapis arvensis"="#9abdbb", "Turnip"=	"#c5d6d6", "Pincushion Flower"="#e09aa5", "Heliosperma alpestre"="#ffceda", "Grass of Parnassus"="#d0425d", "Melon"=	"#FA6775","Alfalfa"=	"#e035d7", "Bean"=	"#e03581", "Hairy vetch"=	"#e035ac",
+"Medicago truncatula"=	"#b554a6", "Pea"=	"#68104d", "Oak"=	"#000000", "Chiltern Gentian"=	"#00a7b5", "Willow Gentian"="#15cd7e", "Eyebright"=	"#00bb9f", "Phelipanche ramosa"=	"#08ffda", "Rhinanthus glacialis"="#8eddad", "Dahurian wildrye"="#2fbd03","Festuca rubra"="#2E4600", "Lolium arundinacea"=	"#3c884c", "Lolium perenne"	="#72ae4f", "Oat"=	"#66ff00", "Rice"=	"#b2d24f", "Setaria pumila"=	"#c5cd77", "Setaria viridis"="#edf050", "Siberian wildrye"="#9ff76e", "Wheat"="#fdf351", "Tobacco"="#ff9b7c", "Tomato"="#ff2600", "Rorripa sylvestris"=	"#c473fa", "White Clover"="#8f868c", "Red Clover"="#dad7d9", "Creeping Bentgrass"="#bd9103")
+p4d=ggplot(data=DivgyrB_4species, aes(x=observed_otus, y=Plant, color=Plant)) + geom_jitter( alpha=0.8)+geom_boxplot() +xlab("Observed ASV richness")+ylab("Plant Species")+ theme_gray()+ theme(axis.title = element_text(color="black", size=9, face="bold"))+ theme(axis.text = element_text(color="black", size=7, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+theme(strip.text.y = element_text(size=8, angle=0, face = "bold",margin = margin( b = 2, t = 2)))+scale_shape_manual(values=c(3, 1,2, 16))+ labs(shape = "Gene Region", color = "Plant Species")+ theme(legend.title = element_text(color="black", size=12, face="bold"))+scale_x_log10()+scale_color_manual(values=color)+ theme(panel.background = element_rect(fill = "#eeeeee",colour = "#eeeeee",size = 0.9, linetype="solid"),
+  panel.grid.major = element_line(size = 0.5, linetype = 'solid',colour = "white"),panel.grid.minor = element_line(size = 0.25, linetype = 'solid',colour = "#eeeeee"))+ theme(strip.background = element_rect(fill = "#d9dbdb"))+ggtitle("gyrB gene - Bacteria") +
+  theme(plot.title = element_text(hjust = 0.5, face="bold", size=10))+ theme(panel.spacing.y = unit(0.2, "lines"))+ guides(col = guide_legend(ncol = 4))
+p4d
+```
+## Figure richness of the different botanical families
+```{r warning=FALSE}
+library(ggplot2)
+color=c("Apiaceae"="#000000", "Brassicaceae"="#81edff", "Caprifoliaceae"="#8338ec", "Caryophyllaceae"="#ff7c43", "Celastraceae"="#a05195", "Fabaceae"="#f69cbd", "Fagaceae"=	"#90665f", "Gentianaceae"="#6f9d4b", "Orobanchaceae"="#affc41", "Poaceae"=	"#ffdd00", "Solanaceae"="#ff2600","Asteraceae"="grey", "Cucurbitaceae"="darkred") 
+p4e=ggplot(data=DivgyrB, aes(x=observed_otus, y=Family, color=Family)) + geom_jitter( alpha=0.8)+geom_boxplot() +xlab("Observed ASV richness")+ylab("Plant Family")+ theme_gray()+ theme(axis.title = element_text(color="black", size=9, face="bold"))+ theme(axis.text = element_text(color="black", size=7, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+theme(strip.text.y = element_text(size=8, angle=0, face = "bold",margin = margin( b = 2, t = 2)))+scale_shape_manual(values=c(3, 1,2, 16))+ labs(shape = "Gene Region", color = "Plant Family")+ theme(legend.title = element_text(color="black", size=12, face="bold"))+scale_x_log10()+scale_color_manual(values=color)+ theme(panel.background = element_rect(fill = "#eeeeee",colour = "#eeeeee",size = 0.9, linetype="solid"),
+  panel.grid.major = element_line(size = 0.5, linetype = 'solid',colour = "white"),panel.grid.minor = element_line(size = 0.25, linetype = 'solid',colour = "#eeeeee"))+ theme(strip.background = element_rect(fill = "#d9dbdb"))+ggtitle("gyrB gene - Bacteria") +
+  theme(plot.title = element_text(hjust = 0.5, face="bold", size=10))+ theme(panel.spacing.y = unit(0.2, "lines"))
+p4e
+```
+
+
+
+
 
 
 ## ITS Average SV richness all studies
@@ -162,6 +308,100 @@ figure2_Median=ggdraw() +
   draw_plot_label(c("A", "B", "C"), c(0, 0.4, 0.7), c(1, 1, 1), size = 15)
 figure2_Median
 ```
+
+
+
+###Stat  effect of botanical family or Plant on ASV richness for all plants
+```{r}
+library(car)
+res <- leveneTest(observed_otus ~ Plant, data = DivITS)
+res
+#the homogeneity of variances is not verified, so we will do a Kruskall Wallis test
+mod=kruskal.test(observed_otus ~ Plant, data = DivITS) 
+mod
+wilcox=pairwise.wilcox.test(DivITS$observed_otus, DivITS$Plant,
+                 p.adjust.method = "BH")
+library(rcompanion)
+Table2 = wilcox$p.value
+Table3 = fullPTable(Table2)
+library(multcompView)
+multcompLetters(Table3)
+```
+
+
+
+
+###Stat  effect of plant species on ASV richness for Rapeseed, Rice, Radish and Bean
+```{r}
+plants2 <- c("Radish","Bean", "Rapeseed")
+DivITS_4species <- DivITS[DivITS$Plant %in% plants2,]
+dim(DivITS_4species)
+
+res <- leveneTest(observed_otus ~ Plant, data = DivITS_4species)
+res
+#the homogeneity of variances is not verified, so we will do a Kruskall Wallis test
+mod=kruskal.test(observed_otus ~ Plant, data = DivITS_4species) 
+mod
+wilcox=pairwise.wilcox.test(DivITS_4species$observed_otus, DivITS_4species$Plant,
+                 p.adjust.method = "BH")
+library(rcompanion)
+Table2 = wilcox$p.value
+Table3 = fullPTable(Table2)
+library(multcompView)
+multcompLetters(Table3)
+```
+## Figure richness ITS of the 4 plant species
+```{r warning=FALSE}
+library(ggplot2)
+color=c("Carrot"="#ee8332", "Great Masterwort"="#f0810F", "Sunflower"="#fec767", "Alliaria petiolata"="#4a1777", "Arabidopsis thaliana"="#835e9f", "Barbarea vulgaris "="#baa5c8", "Berteroa incana"=	"#ceaac4", "Brassica nigra"="#a96699", "Broccoli"="#aea9ca", "Cabbage"=	"#811770", "Capsella bursa-pastoris"="#6b66a3", "Cardamine hirsuta"="#1b2b7d", "Cauliflower"="#5892ae", "Erophila verna "=	"#5e87c5", "Garden rocket"="#67bde8", "Radish"="#4cb5f5", "Rapeseed"="#008bc4", "Rorippa sylvestris"="#3e8a89", "Sinapis arvensis"="#9abdbb", "Turnip"=	"#c5d6d6", "Pincushion Flower"="#e09aa5", "Heliosperma alpestre"="#ffceda", "Grass of Parnassus"="#d0425d", "Melon"=	"#FA6775","Alfalfa"=	"#e035d7", "Bean"=	"#e03581", "Hairy vetch"=	"#e035ac",
+"Medicago truncatula"=	"#b554a6", "Pea"=	"#68104d", "Oak"=	"#000000", "Chiltern Gentian"=	"#00a7b5", "Willow Gentian"="#15cd7e", "Eyebright"=	"#00bb9f", "Phelipanche ramosa"=	"#08ffda", "Rhinanthus glacialis"="#8eddad", "Dahurian wildrye"="#2fbd03","Festuca rubra"="#2E4600", "Lolium arundinacea"=	"#3c884c", "Lolium perenne"	="#72ae4f", "Oat"=	"#66ff00", "Rice"=	"#b2d24f", "Setaria pumila"=	"#c5cd77", "Setaria viridis"="#edf050", "Siberian wildrye"="#9ff76e", "Wheat"="#fdf351", "Tobacco"="#ff9b7c", "Tomato"="#ff2600", "Rorripa sylvestris"=	"#c473fa", "White Clover"="#8f868c", "Red Clover"="#dad7d9", "Creeping Bentgrass"="#bd9103")
+p4c=ggplot(data=DivITS_4species, aes(x=Plant, y=observed_otus, color=Plant)) + geom_jitter( alpha=0.7)+geom_boxplot(alpha=0.2) +xlab("Plant Species ")+ylab("Observed ASV richness")+ theme_classic()+ theme(axis.title = element_text(color="black", size=14, face="bold"))+ theme(axis.text = element_text(color="black", size=12, face="bold"))+ theme(legend.text = element_text(color="black", size=10, face="bold"))+ theme(legend.title = element_text(color="black", size=14, face="bold"))+scale_y_log10()+scale_color_manual(values=color)+ggtitle("ITS1 Region - Fungi") +theme(plot.title = element_text(hjust = 0.5, face="bold", size=15))+theme(legend.position = "none")
+p4c
+```
+
+
+
+###Stat effect of plant family on ASV richness for Brassica, Faba, Oro, Poa 
+```{r}
+families <- c("Brassicaceae","Fabaceae", "Orobanchaceae")
+DivITS_4families <- DivITS[DivITS$Family %in% families,]
+dim(DivITS_4families)
+
+res <- leveneTest(observed_otus ~ Family, data = DivITS_4families)
+res
+#the homogeneity of variances is not verified, so we will do a Kruskall Wallis test
+mod=kruskal.test(observed_otus ~ Family, data = DivITS_4families) 
+mod
+wilcox=pairwise.wilcox.test(DivITS_4families$observed_otus, DivITS_4families$Family,
+                 p.adjust.method = "BH")
+library(rcompanion)
+Table2 = wilcox$p.value
+Table3 = fullPTable(Table2)
+library(multcompView)
+multcompLetters(Table3)
+```
+## Figure richness ITS of the 4 plant species
+```{r warning=FALSE}
+library(ggplot2)
+
+p4c=ggplot(data=DivITS_4families, aes(x=Family, y=observed_otus, color=Family)) + geom_jitter( alpha=0.7)+geom_boxplot(alpha=0.2) +xlab("Plant Species ")+ylab("Observed ASV richness")+ theme_classic()+ theme(axis.title = element_text(color="black", size=14, face="bold"))+ theme(axis.text = element_text(color="black", size=12, face="bold"))+ theme(legend.text = element_text(color="black", size=10, face="bold"))+ theme(legend.title = element_text(color="black", size=14, face="bold"))+scale_y_log10()+scale_color_manual(values=color)+ggtitle("ITS1 Region - Fungi") +theme(plot.title = element_text(hjust = 0.5, face="bold", size=15))+theme(legend.position = "none")
+p4c
+```
+
+
+
+
+
+
+#Supplementary Figure alpha div - 3/4 Plant species 
+```{r}
+library(ggpubr)
+figureSX=ggarrange(p4b, p4c,labels = c("D", "E"), ncol=2)
+figureSX
+```
+
+
+
 
 
 ###############################################################################
@@ -477,7 +717,7 @@ figureS8
 
 ############################################################################################################
 #########################################################################################################
-# Figure S1 -16S Basic graphs to describe the meta-analysis dataset (Subset 2)
+# Figure S2 -16S Basic graphs to describe the meta-analysis dataset (Subset 2)
 ### 16S Seed Fraction
 ```{r warning=FALSE}
 A1=Div16S %>% 
@@ -544,7 +784,7 @@ A8=ggplot(Div16S, aes(Seed_number))+geom_histogram(binwidth=5, fill="#bcd4e6") +
 A8
 ```
 
-# Figure S2 - gyrB
+# Figure S3 - gyrB
 ### Seed Fraction
 ```{r warning=FALSE}
 A1=DivgyrB %>% 
@@ -612,7 +852,7 @@ A8=ggplot(DivgyrB, aes(Seed_number))+geom_histogram(binwidth=5, fill="#bcd4e6") 
 A8
 ```
 
-# Figure S3 - ITS
+# Figure S4 - ITS
 ### Seed Fraction
 ```{r warning=FALSE}
 A1=DivITS %>% 
@@ -705,6 +945,23 @@ library(dplyr)
 ITS_16S <- ITS_16S %>% group_by(Plant) %>%mutate(median_ratio_observed_otus_plant = median(Ratio_observed_otus))
 c5=ggplot(data=ITS_16S) + geom_jitter(aes(x=reorder(Plant, median_ratio_observed_otus_plant), y=Ratio_observed_otus, color=Family, shape=Seed_fraction), alpha=0.4, size=1.5) + theme_classic()+xlab("Plant Species")+ylab("Ratio Prokaryotic / Fungal\nObserved ASVs Richness")+ theme(axis.title = element_text(color="black", size=11, face="bold"))+ theme(axis.text = element_text(color="black", size=10, face="bold"))+ theme(legend.text = element_text(colour="black", size = 8, face = "bold"))+ theme(legend.title = element_text(colour="black", size=10, face="bold"))+scale_shape_manual(values=c(1,16))+ labs(shape = "Seed Fraction", color = "Plant Family")+scale_color_manual(values=color)+scale_y_log10()+geom_hline(yintercept = 1)+ geom_point(aes(x=Plant, y=median_ratio_observed_otus_plant, color=Family), fill="black", size=3)+ theme(axis.text.x = element_text(angle = 50, hjust = 1,color="black", size=9, face="bold"))+ theme(legend.position = "none")
 c5
+```
+
+###Stat  effect of botanical family on ratios for all plants
+```{r}
+library(car)
+res <- leveneTest(Ratio_observed_otus ~ Family, data = ITS_16S)
+res
+#the homogeneity of variances is not verified, so we will do a Kruskall Wallis test
+mod=kruskal.test(Ratio_observed_otus ~ Family, data = ITS_16S) 
+mod
+wilcox=pairwise.wilcox.test(ITS_16S$Ratio_observed_otus, ITS_16S$Family,
+                 p.adjust.method = "BH")
+library(rcompanion)
+Table2 = wilcox$p.value
+Table3 = fullPTable(Table2)
+library(multcompView)
+multcompLetters(Table3)
 ```
 
 
@@ -991,7 +1248,7 @@ SVprev_rel_taxo_Plantobs<-merge(SVprev_rel_taxo,SVobs_byPlant,by="SV")
 
 
 
-# Figure S9 - Plot Abundance-occupancy graph - 16S V4 - All phyla (for SI)
+# Figure S12 - Plot Abundance-occupancy graph - 16S V4 - All phyla (for SI)
 ```{r}
 figureS9=ggplot(data=SVprev_rel_taxo_Plantobs, aes(x=SV_relative_abundance, y=SV_Prevalence)) +
     geom_point(aes(color=NbPlantObs), alpha=0.7, size=0.7) + xlab("Log10(Mean ASV relative abundance)") + ylab("ASV Prevalence")+scale_x_log10(labels = scales::trans_format("log10", scales::math_format(10^.x)))+ scale_y_log10(labels = scales::percent_format(accuracy = 1))+facet_wrap(~Phylum, ncol=7)+ theme_classic()+ theme(axis.title = element_text(color="black", size=10, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+ theme(legend.title = element_text(color="black", size=10, face="bold")) + guides(color=guide_legend(title="Number of Plant\nSpecies Detected"))+scale_color_gradient2(midpoint=13, low="#c1e7ff", mid="#f2c057",high="red", breaks = c(1,5,10,15,20,25))+ theme(strip.background = element_rect(fill = "white"),strip.text = element_text(colour = "black", face = "bold"))+ theme(panel.background = element_rect(fill = "white",colour = "black",size = 0.5, linetype="solid"), panel.grid.major.y = element_line(size = 0.5, linetype = 'dashed',colour = "black"))
@@ -1006,6 +1263,12 @@ dim(SVprev_rel_taxo_Plantobs_subset)
 g1=ggplot(data=SVprev_rel_taxo_Plantobs_subset, aes(x=SV_relative_abundance, y=SV_Prevalence)) +
     geom_point(aes(color=NbPlantObs), alpha=0.9, size=0.7) + xlab("Log10(Mean ASV relative abundance)") + ylab("ASV Prevalence")+scale_x_log10(labels = scales::trans_format("log10", scales::math_format(10^.x)))+ scale_y_log10(labels = scales::percent_format(accuracy = 1))+facet_wrap(~Phylum, ncol=3)+ theme_classic()+ theme(axis.title = element_text(color="black", size=10, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+ theme(legend.title = element_text(color="black", size=10, face="bold"))+ theme(legend.position = c(0.93, 0.2)) + guides(color=guide_legend(title="Number of Plant\nSpecies Detected"))+scale_color_gradient2(midpoint=14, low="#c1e7ff", mid="#f2c057",high="red", breaks = c(1,5,10,15,20,30))+ theme(strip.background = element_rect(fill = "white"),strip.text = element_text(colour = "black", face = "bold"))+ theme(panel.background = element_rect(fill = "white",colour = "black",size = 0.5, linetype="solid"), panel.grid.major.y = element_line(size = 0.5, linetype = 'dashed',colour = "black"))+theme(legend.position = "none")+ggtitle("16S rRNA gene - Bacteria & Archaea")+theme(plot.title = element_text(hjust = 0.5, face="bold"))
 g1
+
+#Count ASV richness by phylum
+SVprev_rel_taxo_Plantobs_subset2=SVprev_rel_taxo_Plantobs_subset %>%
+    count(Phylum)
+head(SVprev_rel_taxo_Plantobs_subset2)
+dim(SVprev_rel_taxo_Plantobs_subset2)
 ```
 
 
@@ -1091,17 +1354,38 @@ head(SV_ITSprev_rel_taxo_Plantobs)
 ```
 
 
-## Figure 4B -Plot Abundance-occupancy graph - ITS1 - All phyla 
+##Plot Abundance-occupancy graph - ITS1 - All classes 
 ```{r}
 library(ggplot2)
-g2=ggplot(data=SV_ITSprev_rel_taxo_Plantobs, aes(x=SV_ITS_relative_abundance, y=SV_ITS_Prevalence)) +
-    geom_point(aes(color=NbPlantObs), alpha=0.9, size=0.7) + xlab("Log10(Mean ASV relative abundance)") + ylab("ASV Prevalence")+scale_x_log10(labels = scales::trans_format("log10", scales::math_format(10^.x)))+ scale_y_log10(labels = scales::percent_format(accuracy = 1))+facet_wrap(~Phylum, ncol=4)+ theme_classic()+ theme(axis.title = element_text(color="black", size=10, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+ theme(legend.title = element_text(color="black", size=10, face="bold")) +scale_color_gradient2(midpoint=16, low="#c1e7ff", mid="#f2c057",high="red", breaks = c(1,5,10,15,20,31))+ theme(strip.background = element_rect(fill = "white"),strip.text = element_text(colour = "black", face = "bold"))+ theme(panel.background = element_rect(fill = "white",colour = "black",size = 0.5, linetype="solid"), panel.grid.major.y = element_line(size = 0.5, linetype = 'dashed',colour = "black"))+ theme(legend.position = c(0.9, 0.15)) + guides(colour = guide_legend(override.aes = list(size=2), title="Number of Plant\nSpecies Detected"))+ggtitle("ITS1 Region - Fungi")+theme(plot.title = element_text(hjust = 0.5, face="bold"))
+g2a=ggplot(data=SV_ITSprev_rel_taxo_Plantobs, aes(x=SV_ITS_relative_abundance, y=SV_ITS_Prevalence)) +
+    geom_point(aes(color=NbPlantObs), alpha=0.9, size=0.7) + xlab("Log10(Mean ASV relative abundance)") + ylab("ASV Prevalence")+scale_x_log10(labels = scales::trans_format("log10", scales::math_format(10^.x)))+ scale_y_log10(labels = scales::percent_format(accuracy = 1))+facet_wrap(~Class, ncol=4)+ theme_classic()+ theme(axis.title = element_text(color="black", size=10, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+ theme(legend.title = element_text(color="black", size=10, face="bold")) +scale_color_gradient2(midpoint=16, low="#c1e7ff", mid="#f2c057",high="red", breaks = c(1,5,10,15,20,31))+ theme(strip.background = element_rect(fill = "white"),strip.text = element_text(colour = "black", face = "bold"))+ theme(panel.background = element_rect(fill = "white",colour = "black",size = 0.5, linetype="solid"), panel.grid.major.y = element_line(size = 0.5, linetype = 'dashed',colour = "black"))+ theme(legend.position = c(0.9, 0.15)) + guides(colour = guide_legend(override.aes = list(size=2), title="Number of Plant\nSpecies Detected"))+ggtitle("ITS1 Region - Fungi")+theme(plot.title = element_text(hjust = 0.5, face="bold"))
+#Count ASV richness by class
+SV_ITSprev_rel_taxo_Plantobs4=SV_ITSprev_rel_taxo_Plantobs %>%
+    count(Class)
+head(SV_ITSprev_rel_taxo_Plantobs4)
+dim(SV_ITSprev_rel_taxo_Plantobs4)
+g2a
+```
+## Figure 4B -Plot Abundance-occupancy graph - ITS1 - subset of abundant classes
+```{r}
+classes=c("Dothideomycetes", "Eurotiomycetes", "Leotiomycetes", "Saccharomycetes","Sordariomycetes", "Agaricomycetes", "Microbotryomycetes", "Mortierellomycetes", "Tremellomycetes", "Glomeromycetes", "Wallemiomycetes")
+SV_ITSprev_rel_taxo_Plantobs2=subset(SV_ITSprev_rel_taxo_Plantobs, Class %in% classes)
+dim(SV_ITSprev_rel_taxo_Plantobs2)
+library(ggplot2)
+g2=ggplot(data=SV_ITSprev_rel_taxo_Plantobs2, aes(x=SV_ITS_relative_abundance, y=SV_ITS_Prevalence)) +
+    geom_point(aes(color=NbPlantObs), alpha=0.9, size=0.7) + xlab("Log10(Mean ASV relative abundance)") + ylab("ASV Prevalence")+scale_x_log10(labels = scales::trans_format("log10", scales::math_format(10^.x)))+ scale_y_log10(labels = scales::percent_format(accuracy = 1))+facet_wrap(~Class, ncol=4)+ theme_classic()+ theme(axis.title = element_text(color="black", size=10, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+ theme(legend.title = element_text(color="black", size=10, face="bold")) +scale_color_gradient2(midpoint=16, low="#c1e7ff", mid="#f2c057",high="red", breaks = c(1,5,10,15,20,31))+ theme(strip.background = element_rect(fill = "white"),strip.text = element_text(colour = "black", face = "bold"))+ theme(panel.background = element_rect(fill = "white",colour = "black",size = 0.5, linetype="solid"), panel.grid.major.y = element_line(size = 0.5, linetype = 'dashed',colour = "black"))+ theme(legend.position = c(0.9, 0.15)) + guides(colour = guide_legend(override.aes = list(size=2), title="Number of Plant\nSpecies Detected"))+ggtitle("ITS1 Region - Fungi")+theme(plot.title = element_text(hjust = 0.5, face="bold"))
 g2
+
+#Count ASV richness by class
+SV_ITSprev_rel_taxo_Plantobs3=SV_ITSprev_rel_taxo_Plantobs2 %>%
+    count(Class)
+head(SV_ITSprev_rel_taxo_Plantobs3)
+dim(SV_ITSprev_rel_taxo_Plantobs3)
 ```
 
 
 
-## Figure S10 Calculations and graphs for gyrB dataset - Subset 3
+## Figure S13 - Calculations and graphs for gyrB dataset - Subset 3
 ```{r}
 SV_gyrB<-read.table("Subset3-gyrB-MiSeq_table-FINAL-rarefied.txt", header=TRUE, check.names = FALSE, sep = "\t", row.names=1)
 head(SV_gyrB)
@@ -1183,7 +1467,7 @@ head(SV_gyrBprev_rel_taxo_Plantobs)
 ```
 
 
-## Figure S10 - Plot Abundance-occupancy graph - gyrB - All phyla
+## Figure S13 - Plot Abundance-occupancy graph - gyrB - All phyla
 ```{r}
 figureS10=ggplot(data=SV_gyrBprev_rel_taxo_Plantobs, aes(x=SV_gyrB_relative_abundance, y=SV_gyrB_Prevalence)) +
     geom_point(aes(color=NbPlantObs), alpha=0.9, size=0.7) + xlab("Log10(Mean ASV relative abundance)") + ylab("ASV Prevalence")+scale_x_log10(labels = scales::trans_format("log10", scales::math_format(10^.x)))+ scale_y_log10(labels = scales::percent_format(accuracy = 1))+facet_wrap(~Phylum, ncol=3)+ theme_classic()+ theme(axis.title = element_text(color="black", size=10, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+ theme(legend.title = element_text(color="black", size=8, face="bold")) +scale_color_gradient2(midpoint=13, low="#c1e7ff", mid="#f2c057",high="red", breaks = c(1,5,10,15,20,25))+ theme(strip.background = element_rect(fill = "white"),strip.text = element_text(colour = "black", face = "bold"))+ theme(panel.background = element_rect(fill = "white",colour = "black",size = 0.5, linetype="solid"), panel.grid.major.y = element_line(size = 0.5, linetype = 'dashed',colour = "black")) + guides(colour = guide_legend(override.aes = list(size=2), title="Number of Plant\nSpecies Detected"))+ggtitle("gyrB gene - Bacteria")+theme(plot.title = element_text(hjust = 0.5, face="bold"))
@@ -1519,7 +1803,7 @@ data_glom16S=cbind(data_glom16S, col16S)
 ```
 
 ```{r}
-#simple way to rename phyla with < 1% abundance
+#rename phyla "Others" with < 0.3% abundance
 data_glom_16S3=data_glom16S
 data_glom_16S3$Phylum[data_glom_16S3$Abundance < 0.003] <- "Other"
 
@@ -1539,10 +1823,197 @@ tax_colors_16S <-  c('Acidobacteria'='#ffbb94','Actinobacteria'='#cf7773' ,'Bact
 
 #plot with condensed phyla into "unknown" category
 f5_16S <- ggplot(data=data_glom_16S3, aes(x=Abundance, y=Study_ID2, fill=Phylum))+facet_grid(Plant2~., scales="free", space = "free")+ geom_bar(aes(), stat="identity", position="stack") +
-theme(legend.position="bottom") + theme_classic()+ theme(axis.title = element_text(color="black", size=9, face="bold"))+ theme(axis.text = element_text(color="black", size=7, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+ theme(legend.title = element_text(color="black", size=8, face="bold")) + theme(strip.background = element_rect(fill = "#f0eeec"),strip.text = element_text(colour = "black", face = "bold"))+ theme(panel.background = element_rect(fill = "white",colour = "black",size = 0.5, linetype="solid"))+ggtitle("16S rRNA gene - Bacteria & Archaea")+theme(plot.title = element_text(hjust = 0.5, face="bold"))+theme(strip.text.y = element_text(size=8, angle=0, face = "bold")) +xlab("Relative Abundance")+ylab("Studies")+ scale_x_continuous(labels = scales::percent_format(accuracy = 1))+theme(legend.position = "bottom") +scale_fill_manual(values=tax_colors_16S)+guides(fill=guide_legend(nrow=3,byrow=TRUE))+ theme(panel.spacing.y = unit(0.01, "lines"))
+theme(legend.position="bottom") + theme_classic()+ theme(axis.title = element_text(color="black", size=11, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=10, face="bold"))+ theme(legend.title = element_text(color="black", size=11, face="bold")) + theme(strip.background = element_rect(fill = "#f0eeec"),strip.text = element_text(colour = "black", face = "bold"))+ theme(panel.background = element_rect(fill = "white",colour = "black",size = 0.5, linetype="solid"))+ggtitle("16S rRNA gene - Bacteria & Archaea")+theme(plot.title = element_text(hjust = 0.5, face="bold", size=13))+theme(strip.text.y = element_text(size=10, angle=0, face = "bold")) +xlab("Relative Abundance")+ylab("Studies")+ scale_x_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0,1))+theme(legend.position = "bottom") +scale_fill_manual(values=tax_colors_16S)+guides(fill=guide_legend(nrow=4,byrow=TRUE))+ theme(panel.spacing.y = unit(0.01, "lines"))+theme(legend.margin=margin(c(0,1,1,1)))
 
 f5_16S
 ```
+
+
+## 16S-Relative abundance of specific phyla by plant species 
+```{r}
+physeq_16S_Plant <- subset_samples(physeq_16S, Plant%in%c("Radish", "Rapeseed", "Rice", "Bean"))
+
+#Transform into relative abundance
+physeq_OTU_rel <- transform_sample_counts(physeq_16S_Plant, function(x) x / sum(x) )
+#Extract OTU table
+physeq_OTU_rel_table <- data.frame(otu_table(physeq_OTU_rel))
+physeq_OTU_rel_table <- cbind(Sample = rownames(physeq_OTU_rel_table), physeq_OTU_rel_table)
+row.names(physeq_OTU_rel_table) <- NULL
+physeq_OTU_rel_table$Sample <- as.factor(physeq_OTU_rel_table$Sample)
+head(physeq_OTU_rel_table)
+#Extract metadata
+META2 <- data.frame(sample_data(physeq_OTU_rel))
+META2 <- cbind(Sample = rownames(META2), META2)
+row.names(META2) <- NULL
+META2$SampleID <- as.factor(META2$SampleID)
+```
+
+### Transform table matrix into long table format
+```{r}
+library(reshape2)
+library(dplyr)
+table_rel_abund_long=setNames(melt(physeq_OTU_rel_table), c('SV', 'Sample', 'Relative_Abundance'))
+table_rel_abund_long <- filter(table_rel_abund_long, Relative_Abundance > 0)
+head(table_rel_abund_long)
+dim(table_rel_abund_long)
+## merge with metadata
+table_rel_abund_long_meta<-merge(META2,table_rel_abund_long,by="Sample")
+dim(table_rel_abund_long_meta)
+head(table_rel_abund_long_meta)
+##merge with taxonomic info
+taxo <- read.table(file="Subset1-2_All_studies_merged_16S-rep-seqs-FINAL-V4-MiSeq-taxonomy.tsv", sep='\t', header=TRUE,check.names=FALSE)
+table_rel_abund_long_meta<-merge(taxo,table_rel_abund_long_meta,by="SV")
+dim(table_rel_abund_long_meta)
+head(table_rel_abund_long_meta)
+
+```
+## Calculate cumulative Relative Abundance by taxonomic Classes and by Sample
+```{r}
+cum_rel_abund_phylum=table_rel_abund_long_meta %>% 
+  group_by(SampleID, Phylum, Plant) %>%                            # multiple group columns
+  summarise(Relative_Abundance = sum(Relative_Abundance))  
+
+head(cum_rel_abund_phylum)
+dim(cum_rel_abund_phylum)
+#subset just dominant phyla
+phyla=c("Acidobacteria", "Actinobacteria", "Bacteroidetes", "Chloroflexi","Cyanobacteria", "Firmicutes", "Proteobacteria", "Verrucomicrobia")
+cum_rel_abund_phylum_dom=subset(cum_rel_abund_phylum, Phylum %in% phyla)
+dim(cum_rel_abund_phylum_dom)
+
+# Calculate median by plant
+cum_rel_abund_phylum_dom <- cum_rel_abund_phylum_dom %>% group_by(Plant, Phylum) %>%mutate(median_Relative_Abundance_plant = median(Relative_Abundance))
+head(cum_rel_abund_phylum_dom)
+```
+
+
+### Figure S5F - Plot relative abundance of dominant phyla by plant
+```{r}
+color=c("Carrot"="#ee8332", "Great Masterwort"="#f0810F", "Sunflower"="#fec767", "Alliaria petiolata"="#4a1777", "Arabidopsis thaliana"="#835e9f", "Barbarea vulgaris "="#baa5c8", "Berteroa incana"=	"#ceaac4", "Brassica nigra"="#a96699", "Broccoli"="#aea9ca", "Cabbage"=	"#811770", "Capsella bursa-pastoris"="#6b66a3", "Cardamine hirsuta"="#1b2b7d", "Cauliflower"="#5892ae", "Erophila verna "=	"#5e87c5", "Garden rocket"="#67bde8", "Radish"="#4cb5f5", "Rapeseed"="#008bc4", "Rorippa sylvestris"="#3e8a89", "Sinapis arvensis"="#9abdbb", "Turnip"=	"#c5d6d6", "Pincushion Flower"="#e09aa5", "Heliosperma alpestre"="#ffceda", "Grass of Parnassus"="#d0425d", "Melon"=	"#FA6775","Alfalfa"=	"#e035d7", "Bean"=	"#e03581", "Hairy vetch"=	"#e035ac",
+"Medicago truncatula"=	"#b554a6", "Pea"=	"#68104d", "Oak"=	"#000000", "Chiltern Gentian"=	"#00a7b5", "Willow Gentian"="#15cd7e", "Eyebright"=	"#00bb9f", "Phelipanche ramosa"=	"#08ffda", "Rhinanthus glacialis"="#8eddad", "Dahurian wildrye"="#2fbd03","Festuca rubra"="#2E4600", "Lolium arundinacea"=	"#3c884c", "Lolium perenne"	="#72ae4f", "Oat"=	"#66ff00", "Rice"=	"#b2d24f", "Setaria pumila"=	"#c5cd77", "Setaria viridis"="#edf050", "Siberian wildrye"="#9ff76e", "Wheat"="#fdf351", "Tobacco"="#ff9b7c", "Tomato"="#ff2600", "Rorripa sylvestris"=	"#c473fa", "White Clover"="#8f868c", "Red Clover"="#dad7d9", "Creeping Bentgrass"="#bd9103")
+f5_16Sa <- ggplot(data=cum_rel_abund_phylum_dom, aes(x=Plant, y=Relative_Abundance, color=Plant))+ geom_jitter()  + theme_classic()+ theme(axis.title = element_text(color="black", size=11, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+ theme(legend.title = element_text(color="black", size=8, face="bold")) + theme(strip.background = element_rect(fill = "#f0eeec"),strip.text = element_text(colour = "black", face = "bold"))+ theme(panel.background = element_rect(fill = "white",colour = "black",size = 0.5, linetype="solid"))+ggtitle("16S rRNA gene - Bacteria & Archaea")+theme(plot.title = element_text(hjust = 0.5, face="bold")) +ylab("Relative Abundance")+xlab("Plant species")+facet_wrap(.~Phylum, scales = "free", nrow = 4)+scale_color_manual(values=color)+ scale_y_continuous(labels = scales::percent_format(accuracy = 0.01))+
+    stat_summary(fun.y = median, fun.ymin = median, fun.ymax = median,
+                 geom = "crossbar", width = 0.9, color="black")+
+theme(legend.position="none")
+f5_16Sa
+```
+
+### Stat plant effect on relative abundance phyla
+```{r}
+#subset phlya one by one
+cum_rel_abund_phylum_dom2=subset(cum_rel_abund_phylum_dom, Phylum=="Verrucomicrobia")
+library(car)
+res <- leveneTest(Relative_Abundance ~ Plant, data = cum_rel_abund_phylum_dom2)
+res
+#the homogeneity of variances is not verified, so we will do a Kruskall Wallis test
+mod=kruskal.test(Relative_Abundance ~ Plant, data = cum_rel_abund_phylum_dom2) 
+mod
+wilcox=pairwise.wilcox.test(cum_rel_abund_phylum_dom2$Relative_Abundance, cum_rel_abund_phylum_dom2$Plant,
+                 p.adjust.method = "BH")
+library(rcompanion)
+Table2 = wilcox$p.value
+Table3 = fullPTable(Table2)
+library(multcompView)
+multcompLetters(Table3)
+```
+
+
+
+## Relative abundance of specific phyla by botanical family
+```{r}
+#subset families included in analysis
+physeq_16S_Family <- subset_samples(physeq_16S, Family%in%c("Brassicaceae", "Fabaceae", "Orobanchaceae", "Poaceae"))
+#Transform into relative abundance
+physeq_OTU_rel2 <- transform_sample_counts(physeq_16S_Family, function(x) x / sum(x) )
+physeq_OTU_rel2
+#Extract OTU table
+physeq_OTU_rel_table2 <- data.frame(otu_table(physeq_OTU_rel2))
+physeq_OTU_rel_table2 <- cbind(Sample = rownames(physeq_OTU_rel_table2), physeq_OTU_rel_table2)
+row.names(physeq_OTU_rel_table2) <- NULL
+physeq_OTU_rel_table2$Sample <- as.factor(physeq_OTU_rel_table2$Sample)
+#Extract metadata
+META3 <- data.frame(sample_data(physeq_OTU_rel2))
+META3 <- cbind(Sample = rownames(META3), META3)
+row.names(META3) <- NULL
+META3$SampleID <- as.factor(META3$SampleID)
+```
+
+### Transform table matrix into long table format
+```{r}
+library(reshape2)
+library(dplyr)
+table_rel_abund_long2=setNames(melt(physeq_OTU_rel_table2), c('SV', 'Sample', 'Relative_Abundance'))
+table_rel_abund_long2 <- filter(table_rel_abund_long2, Relative_Abundance > 0)
+head(table_rel_abund_long2)
+dim(table_rel_abund_long2)
+## merge with metadata
+table_rel_abund_long_meta2<-merge(META3,table_rel_abund_long2,by="Sample")
+dim(table_rel_abund_long_meta2)
+head(table_rel_abund_long_meta2)
+##merge with taxonomic info
+taxo <- read.table(file="Subset1-2_All_studies_merged_16S-rep-seqs-FINAL-V4-MiSeq-taxonomy.tsv", sep='\t', header=TRUE,check.names=FALSE)
+table_rel_abund_long_meta2<-merge(taxo,table_rel_abund_long_meta2,by="SV")
+dim(table_rel_abund_long_meta2)
+head(table_rel_abund_long_meta2)
+
+```
+## Calculate cumulative Relative Abundance by taxonomic phylum and by Sample
+```{r}
+cum_rel_abund_phylum2=table_rel_abund_long_meta2 %>% 
+  group_by(SampleID, Phylum, Family.y) %>%                            # multiple group columns
+  summarise(Relative_Abundance = sum(Relative_Abundance))  
+
+head(cum_rel_abund_phylum2)
+dim(cum_rel_abund_phylum2)
+#subset just dominant phyla
+phyla=c("Acidobacteria", "Actinobacteria", "Bacteroidetes", "Chloroflexi","Cyanobacteria", "Firmicutes", "Proteobacteria", "Verrucomicrobia")
+cum_rel_abund_phylum_dom2=subset(cum_rel_abund_phylum2, Phylum %in% phyla)
+dim(cum_rel_abund_phylum_dom2)
+
+# Calculate median by family
+cum_rel_abund_phylum_dom2 <- cum_rel_abund_phylum_dom2 %>% group_by(Family.y, Phylum) %>%mutate(median_Relative_Abundance_plant = median(Relative_Abundance))
+head(cum_rel_abund_phylum_dom2)
+```
+
+
+### Figure S6F - Plot relative abundance of dominant phyla by botanical family
+```{r}
+color=c("Apiaceae"="#000000", "Brassicaceae"="#81edff", "Caprifoliaceae"="#8338ec", "Caryophyllaceae"="#ff7c43", "Celastraceae"="#a05195", "Fabaceae"="#f69cbd", "Fagaceae"=	"#90665f", "Gentianaceae"="#6f9d4b", "Orobanchaceae"="#affc41", "Poaceae"=	"#ffdd00", "Solanaceae"="#ff2600","Asteraceae"="grey", "Cucurbitaceae"="darkred") 
+f5_16Sb <- ggplot(data=cum_rel_abund_phylum_dom2, aes(x=Family.y, y=Relative_Abundance, color=Family.y))+ geom_jitter()  + theme_classic()+ theme(axis.title = element_text(color="black", size=9, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=9, face="bold"))+ theme(legend.title = element_text(color="black", size=10, face="bold")) + theme(strip.background = element_rect(fill = "#f0eeec"),strip.text = element_text(colour = "black", face = "bold"))+ theme(panel.background = element_rect(fill = "white",colour = "black",size = 0.5, linetype="solid"))+ggtitle("16S rRNA gene - Bacteria & Archaea")+theme(plot.title = element_text(hjust = 0.5, face="bold")) +ylab("Relative Abundance")+xlab("Plant Family")+facet_wrap(.~Phylum, scales = "free_y", nrow = 4)+scale_color_manual(values=color)+ scale_y_log10(labels = scales::percent_format(accuracy = 0.01))+
+    stat_summary(fun.y = median, fun.ymin = median, fun.ymax = median,
+                 geom = "crossbar", width = 0.9, color="black")+ theme(axis.text.x = element_text(angle = 45, hjust = 1))+ labs(color = "Family")+
+theme(legend.position="none")
+
+f5_16Sb
+```
+
+### Stat family effect on relative abundance phyla
+```{r}
+#subset phlya one by one
+cum_rel_abund_phylum_dom3=subset(cum_rel_abund_phylum_dom2, Phylum=="Verrucomicrobia")
+library(car)
+res <- leveneTest(Relative_Abundance ~ Family.y, data = cum_rel_abund_phylum_dom3)
+res
+#the homogeneity of variances is not verified, so we will do a Kruskall Wallis test
+mod=kruskal.test(Relative_Abundance ~ Family.y, data = cum_rel_abund_phylum_dom3) 
+mod
+wilcox=pairwise.wilcox.test(cum_rel_abund_phylum_dom3$Relative_Abundance, cum_rel_abund_phylum_dom3$Family.y,
+                 p.adjust.method = "BH")
+library(rcompanion)
+Table2 = wilcox$p.value
+Table3 = fullPTable(Table2)
+library(multcompView)
+multcompLetters(Table3)
+```
+
+
+
+
+
+
+
+
+
+
 
 
 ## For ITS Import Subset 2 dataset (rarefied by study)
@@ -1632,7 +2103,7 @@ tax_colors_ITS <-  c('Agaricomycetes'='#9089b7', "Agaricostilbomycetes"="gray", 
 
 #plot with condensed phyla into "unknown" category
 f5_ITS <- ggplot(data=data_glomITS2, aes(x=Abundance, y=Study_ID2, fill=Class))+facet_grid(Plant2~., scales="free", space = "free")+ geom_bar(aes(), stat="identity", position="stack") +
-theme(legend.position="bottom") + theme_classic()+ theme(axis.title = element_text(color="black", size=9, face="bold"))+ theme(axis.text = element_text(color="black", size=7, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+ theme(legend.title = element_text(color="black", size=8, face="bold")) + theme(strip.background = element_rect(fill = "#f0eeec"),strip.text = element_text(colour = "black", face = "bold"))+ theme(panel.background = element_rect(fill = "white",colour = "black",size = 0.5, linetype="solid"))+ggtitle("ITS Region - Fungi")+theme(plot.title = element_text(hjust = 0.5, face="bold"))+theme(strip.text.y = element_text(size=8, angle=0, face = "bold")) +xlab("Relative Abundance")+ylab("Studies")+ scale_x_continuous(labels = scales::percent_format(accuracy = 1))+theme(legend.position = "bottom") + theme(panel.spacing = unit(0.1, "lines"))+scale_fill_manual(values=tax_colors_ITS)+guides(fill=guide_legend(nrow=4,byrow=TRUE))
+theme(legend.position="bottom") + theme_classic()+ theme(axis.title = element_text(color="black", size=11, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=10, face="bold"))+ theme(legend.title = element_text(color="black", size=11, face="bold")) + theme(strip.background = element_rect(fill = "#f0eeec"),strip.text = element_text(colour = "black", face = "bold"))+ theme(panel.background = element_rect(fill = "white",colour = "black",size = 0.5, linetype="solid"))+ggtitle("ITS Region - Fungi")+theme(plot.title = element_text(hjust = 0.5, face="bold"))+theme(strip.text.y = element_text(size=11, angle=0, face = "bold")) +xlab("Relative Abundance")+ylab("Studies")+ scale_x_continuous(labels = scales::percent_format(accuracy = 1))+theme(legend.position = "bottom") + theme(panel.spacing = unit(0.1, "lines"))+scale_fill_manual(values=tax_colors_ITS)+guides(fill=guide_legend(nrow=5,byrow=TRUE))
 
 f5_ITS
 ```
@@ -1644,6 +2115,200 @@ library(ggpubr)
 figure6CD=ggarrange(f5_16S, f5_ITS,labels = c("A", "B"), ncol = 2, widths = c(1.2, 1))
 figure6CD
 ```
+
+
+
+
+
+## Relative abundance of specific phyla by plant species 
+```{r}
+physeq_ITS_Plant <- subset_samples(physeq_ITS, Plant%in%c("Radish", "Rapeseed", "Bean"))
+
+#Transform into relative abundance
+physeq_OTU_relITS <- transform_sample_counts(physeq_ITS_Plant, function(x) x / sum(x) )
+#Extract OTU table
+physeq_OTU_relITS_table <- data.frame(otu_table(physeq_OTU_relITS))
+physeq_OTU_relITS_table <- cbind(Sample = rownames(physeq_OTU_relITS_table), physeq_OTU_relITS_table)
+row.names(physeq_OTU_relITS_table) <- NULL
+physeq_OTU_relITS_table$Sample <- as.factor(physeq_OTU_relITS_table$Sample)
+head(physeq_OTU_relITS_table)
+#Extract metadata
+META4 <- data.frame(sample_data(physeq_OTU_relITS))
+META4 <- cbind(Sample = rownames(META4), META4)
+row.names(META4) <- NULL
+META4$SampleID <- as.factor(META4$SampleID)
+```
+
+### Transform table matrix into long table format
+```{r}
+library(reshape2)
+library(dplyr)
+table_relITS_abund_long=setNames(melt(physeq_OTU_relITS_table), c('SV', 'Sample', 'Relative_Abundance'))
+table_relITS_abund_long <- filter(table_relITS_abund_long, Relative_Abundance > 0)
+head(table_relITS_abund_long)
+dim(table_relITS_abund_long)
+## merge with metadata
+table_relITS_abund_long_meta<-merge(META4,table_relITS_abund_long,by="Sample")
+dim(table_relITS_abund_long_meta)
+head(table_relITS_abund_long_meta)
+##merge with taxonomic info
+taxo <- read.table(file="Subset1-2_All_studies_merged_ITS1_taxonomy.tsv", sep='\t', header=TRUE,check.names=FALSE)
+table_relITS_abund_long_meta<-merge(taxo,table_relITS_abund_long_meta,by="SV")
+dim(table_relITS_abund_long_meta)
+head(table_relITS_abund_long_meta)
+
+```
+## Calculate cumulative Relative Abundance by taxonomic classes and by Sample
+```{r}
+cum_relITS_abund_class=table_relITS_abund_long_meta %>% 
+  group_by(SampleID, Class, Plant) %>%                            # multiple group columns
+  summarise(Relative_Abundance = sum(Relative_Abundance))  
+
+head(cum_relITS_abund_class)
+dim(cum_relITS_abund_class)
+#subset just dominant phyla
+classes=c("Dothideomycetes", "Eurotiomycetes", "Leotiomycetes", "Saccharomycetes","Sordariomycetes", "Agaricomycetes", "Microbotryomycetes", "Mortierellomycetes", "Tremellomycetes")
+cum_relITS_abund_class_dom=subset(cum_relITS_abund_class, Class %in% classes)
+dim(cum_relITS_abund_class_dom)
+
+# Calculate median by plant
+cum_relITS_abund_class_dom <- cum_relITS_abund_class_dom %>% group_by(Plant, Class) %>%mutate(median_Relative_Abundance_plant = median(Relative_Abundance))
+head(cum_relITS_abund_class_dom)
+```
+
+
+### Figure S5G - Plot relative abundance of dominant classes by plant
+```{r}
+color=c("Carrot"="#ee8332", "Great Masterwort"="#f0810F", "Sunflower"="#fec767", "Alliaria petiolata"="#4a1777", "Arabidopsis thaliana"="#835e9f", "Barbarea vulgaris "="#baa5c8", "Berteroa incana"=	"#ceaac4", "Brassica nigra"="#a96699", "Broccoli"="#aea9ca", "Cabbage"=	"#811770", "Capsella bursa-pastoris"="#6b66a3", "Cardamine hirsuta"="#1b2b7d", "Cauliflower"="#5892ae", "Erophila verna "=	"#5e87c5", "Garden rocket"="#67bde8", "Radish"="#4cb5f5", "Rapeseed"="#008bc4", "Rorippa sylvestris"="#3e8a89", "Sinapis arvensis"="#9abdbb", "Turnip"=	"#c5d6d6", "Pincushion Flower"="#e09aa5", "Heliosperma alpestre"="#ffceda", "Grass of Parnassus"="#d0425d", "Melon"=	"#FA6775","Alfalfa"=	"#e035d7", "Bean"=	"#e03581", "Hairy vetch"=	"#e035ac",
+"Medicago truncatula"=	"#b554a6", "Pea"=	"#68104d", "Oak"=	"#000000", "Chiltern Gentian"=	"#00a7b5", "Willow Gentian"="#15cd7e", "Eyebright"=	"#00bb9f", "Phelipanche ramosa"=	"#08ffda", "Rhinanthus glacialis"="#8eddad", "Dahurian wildrye"="#2fbd03","Festuca rubra"="#2E4600", "Lolium arundinacea"=	"#3c884c", "Lolium perenne"	="#72ae4f", "Oat"=	"#66ff00", "Rice"=	"#b2d24f", "Setaria pumila"=	"#c5cd77", "Setaria viridis"="#edf050", "Siberian wildrye"="#9ff76e", "Wheat"="#fdf351", "Tobacco"="#ff9b7c", "Tomato"="#ff2600", "Rorripa sylvestris"=	"#c473fa", "White Clover"="#8f868c", "Red Clover"="#dad7d9", "Creeping Bentgrass"="#bd9103")
+f5_ITSa <- ggplot(data=cum_relITS_abund_class_dom, aes(x=Plant, y=Relative_Abundance, color=Plant))+ geom_jitter() + theme_classic()+ theme(axis.title = element_text(color="black", size=11, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=8, face="bold"))+ theme(legend.title = element_text(color="black", size=8, face="bold")) + theme(strip.background = element_rect(fill = "#f0eeec"),strip.text = element_text(colour = "black", face = "bold"))+ theme(panel.background = element_rect(fill = "white",colour = "black",size = 0.5, linetype="solid"))+ggtitle("ITS1 region - Fungi")+theme(plot.title = element_text(hjust = 0.5, face="bold")) +ylab("Relative Abundance")+xlab("Plant species")+facet_wrap(.~Class, scales = "free")+scale_color_manual(values=color)+ scale_y_log10(labels = scales::percent_format(accuracy = 0.01))+
+    stat_summary(fun.y = median, fun.ymin = median, fun.ymax = median,
+                 geom = "crossbar", width = 0.9, color="black") +
+theme(legend.position="none")
+
+f5_ITSa
+```
+
+### Stat plant effect on relative abundance classes
+```{r}
+#subset phlya one by one
+cum_relITS_abund_class_dom2=subset(cum_relITS_abund_class_dom, Class=="Tremellomycetes")
+library(car)
+res <- leveneTest(Relative_Abundance ~ Plant, data = cum_relITS_abund_class_dom2)
+res
+#the homogeneity of variances is not verified, so we will do a Kruskall Wallis test
+mod=kruskal.test(Relative_Abundance ~ Plant, data = cum_relITS_abund_class_dom2) 
+mod
+wilcox=pairwise.wilcox.test(cum_relITS_abund_class_dom2$Relative_Abundance, cum_relITS_abund_class_dom2$Plant,
+                 p.adjust.method = "BH")
+library(rcompanion)
+Table2 = wilcox$p.value
+Table3 = fullPTable(Table2)
+library(multcompView)
+multcompLetters(Table3)
+```
+
+
+
+## Relative abundance of specific classes by botanical family
+```{r}
+physeq_ITS_Family <- subset_samples(physeq_ITS, Family%in%c("Brassicaceae", "Fabaceae", "Orobanchaceae", "Poaceae"))
+
+
+#Transform into relative abundance
+physeq_OTU_relITS2 <- transform_sample_counts(physeq_ITS_Family, function(x) x / sum(x) )
+physeq_OTU_relITS2
+#Extract OTU table
+physeq_OTU_relITS_table2 <- data.frame(otu_table(physeq_OTU_relITS2))
+physeq_OTU_relITS_table2 <- cbind(Sample = rownames(physeq_OTU_relITS_table2), physeq_OTU_relITS_table2)
+row.names(physeq_OTU_relITS_table2) <- NULL
+physeq_OTU_relITS_table2$Sample <- as.factor(physeq_OTU_relITS_table2$Sample)
+#Extract metadata
+META5 <- data.frame(sample_data(physeq_OTU_relITS2))
+META5 <- cbind(Sample = rownames(META5), META5)
+row.names(META5) <- NULL
+META5$SampleID <- as.factor(META5$SampleID)
+```
+
+### Transform table matrix into long table format
+```{r}
+library(reshape2)
+library(dplyr)
+table_relITS_abund_long2=setNames(melt(physeq_OTU_relITS_table2), c('SV', 'Sample', 'Relative_Abundance'))
+table_relITS_abund_long2 <- filter(table_relITS_abund_long2, Relative_Abundance > 0)
+head(table_relITS_abund_long2)
+dim(table_relITS_abund_long2)
+## merge with metadata
+table_relITS_abund_long_meta2<-merge(META5,table_relITS_abund_long2,by="Sample")
+dim(table_relITS_abund_long_meta2)
+head(table_relITS_abund_long_meta2)
+##merge with taxonomic info
+taxo <- read.table(file="Subset1-2_All_studies_merged_ITS1_taxonomy.tsv", sep='\t', header=TRUE,check.names=FALSE)
+table_relITS_abund_long_meta2<-merge(taxo,table_relITS_abund_long_meta2,by="SV")
+dim(table_relITS_abund_long_meta2)
+head(table_relITS_abund_long_meta2)
+
+```
+## Calculate cumulative Relative Abundance by taxonomic phylum and by Sample
+```{r}
+cum_relITS_abund_class2=table_relITS_abund_long_meta2 %>% 
+  group_by(SampleID, Class, Family.y) %>%                            # multiple group columns
+  summarise(Relative_Abundance = sum(Relative_Abundance))  
+
+head(cum_relITS_abund_class2)
+dim(cum_relITS_abund_class2)
+#subset just dominant classes
+classes=c("Dothideomycetes", "Eurotiomycetes", "Leotiomycetes", "Saccharomycetes","Sordariomycetes", "Agaricomycetes", "Microbotryomycetes", "Mortierellomycetes", "Tremellomycetes")
+cum_relITS_abund_class_dom2=subset(cum_relITS_abund_class2, Class %in% classes)
+dim(cum_relITS_abund_class_dom2)
+
+```
+
+
+### Figure S6G - Plot relative abundance of dominant phyla by botanical family
+```{r}
+color=c("Apiaceae"="#000000", "Brassicaceae"="#81edff", "Caprifoliaceae"="#8338ec", "Caryophyllaceae"="#ff7c43", "Celastraceae"="#a05195", "Fabaceae"="#f69cbd", "Fagaceae"=	"#90665f", "Gentianaceae"="#6f9d4b", "Orobanchaceae"="#affc41", "Poaceae"=	"#ffdd00", "Solanaceae"="#ff2600","Asteraceae"="grey", "Cucurbitaceae"="darkred") 
+f5_ITSb <- ggplot(data=cum_relITS_abund_class_dom2, aes(x=Family.y, y=Relative_Abundance, color=Family.y))+ geom_jitter()  + theme_classic()+ theme(axis.title = element_text(color="black", size=9, face="bold"))+ theme(axis.text = element_text(color="black", size=9, face="bold"))+ theme(legend.text = element_text(color="black", size=9, face="bold"))+ theme(legend.title = element_text(color="black", size=10, face="bold")) + theme(strip.background = element_rect(fill = "#f0eeec"),strip.text = element_text(colour = "black", face = "bold"))+ theme(panel.background = element_rect(fill = "white",colour = "black",size = 0.5, linetype="solid"))+ggtitle("ITS1 region - Fungi")+theme(plot.title = element_text(hjust = 0.5, face="bold")) +ylab("Relative Abundance")+xlab("Plant Family")+facet_wrap(.~Class, scales = "free_y")+scale_color_manual(values=color)+ scale_y_log10(labels = scales::percent_format(accuracy = 0.01))+
+    stat_summary(fun.y = median, fun.ymin = median, fun.ymax = median,
+                 geom = "crossbar", width = 0.9, color="black")+ theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+theme(legend.position="none")
+
+f5_ITSb
+```
+
+### Stat family effect on relative abundance classes
+```{r}
+#subset phlya one by one
+cum_relITS_abund_class_dom3=subset(cum_relITS_abund_class_dom2, Class=="Sordariomycetes")
+library(car)
+res <- leveneTest(Relative_Abundance ~ Family.y, data = cum_relITS_abund_class_dom3)
+res
+#the homogeneity of variances is not verified, so we will do a Kruskall Wallis test
+mod=kruskal.test(Relative_Abundance ~ Family.y, data = cum_relITS_abund_class_dom3) 
+mod
+wilcox=pairwise.wilcox.test(cum_relITS_abund_class_dom3$Relative_Abundance, cum_relITS_abund_class_dom3$Family.y,
+                 p.adjust.method = "BH")
+library(rcompanion)
+Table2 = wilcox$p.value
+Table3 = fullPTable(Table2)
+library(multcompView)
+multcompLetters(Table3)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # Figure 6 Part 1 - Beta div - Performed on Subset 3 because needs to be perfomed on common distance matrix
@@ -1694,6 +2359,93 @@ b3 = plot_ordination(physeq_ITS_Subset3, ITS.ord, type="samples", color="Plant",
 b3
 ```
 
+### Figure S14-B PcOA colored by country of origin
+```{r}
+#color by country
+color=c("Australia"="#800000", "Austria"="red", "Brazil"="#808000", "Cameroon"="#469990", "Canada"="#000075", "Chile"="chocolate4", "China"=	"darkorange", "Cote d Ivoire"="#ffe119", "Denmark"="#bfef45", "France"=	"#aaffc3", "Guatemala"="#3cb44b", "India"="#42d4f4", "Indonesia"="#4363d8", "Italy"=	"#911eb4", "Japan"="darkslateblue", "Korea"="mediumpurple1", "Luxembourg"="#ffd8b1", "Mali"="#fffac8", "Myanmar"="#dcbeff", "Nepal"=	"gray", "Netherlands"="lightblue2", "New Zealand"="black", "Nigeria"="tan", "Sri Lanka"=	"#fa6775","Sweden"=	"#e035d7", "Tanzania"=	"#e03581", "USA"=	"blue", "NA"="grey", "Thailand"="pink") 
+ITS.ord <- ordinate(physeq_ITS_Subset3, "PCoA", "bray")
+b3a = plot_ordination(physeq_ITS_Subset3, ITS.ord, type="samples", color="Country", title="ITS1 region - Fungi (Bray-Curtis)")+theme_classic(base_size = 12)+ theme(axis.title = element_text(color="black", size=14, face="bold"))+ theme(axis.text = element_text(color="black", size=12, face="bold"))+ theme(legend.text = element_text(colour="black", size = 8, face = "bold"))+ theme(legend.title = element_text(colour="black", size=10, face="bold"))+theme(plot.title = element_text(hjust = 0.5, face="bold"))+ scale_color_manual(values=color)+xlab("PCoA1 = 18.8%")+ylab("PCoA2 = 11%")
+b3a
+```
+
+
+
+### Figure S5B and Permanova Plant species effect for radish, bean, rapeseed
+```{r}
+plants <- c("Radish","Bean", "Rapeseed")
+Subset3_ITS1_use_3species <- Subset3_ITS1_use[Subset3_ITS1_use$Plant %in% plants,]
+dim(Subset3_ITS1_use_3species)
+matrix3_ITS_3species<-Subset3_ITS1_use_3species[c(34:ncol(Subset3_ITS1_use_3species))]
+matrix3_ITS_3species<-matrix3_ITS_3species[,colSums(matrix3_ITS_3species)>=1]
+dim(matrix3_ITS_3species)
+
+# Permanova - Distance based multivariate analysis of variance
+Alltreatments=Subset3_ITS1_use_3species[c(2:33)] 
+head(Alltreatments)
+#Adonis function in Vegan
+library(vegan)
+adonis <- adonis(matrix3_ITS_3species ~ Plant, method = "bray", permutations = 999, data=Alltreatments)
+adonis
+
+##Run pairwise permanova
+library(pairwiseAdonis)
+pair_adonis=pairwise.adonis(matrix3_ITS_3species, Alltreatments$Plant)
+pair_adonis
+
+library(microbiome)
+##Convert data as phyloseq object
+matrix3_ITS_3speciest=t(matrix3_ITS_3species)
+OTU_ITS_subset3_3species = otu_table(matrix3_ITS_3speciest, taxa_are_rows = TRUE)
+meta_ITS_Subset33species=Subset3_ITS1_use_3species[c(1:33)]
+META_ITS_Subset3_3species=sample_data(meta_ITS_Subset33species)
+physeq_ITS_Subset3_3species = phyloseq(OTU_ITS_subset3_3species,META_ITS_Subset3_3species)
+physeq_ITS_Subset3_3species
+color=c("Carrot"="#ee8332", "Great Masterwort"="#f0810F", "Sunflower"="#fec767", "Alliaria petiolata"="#4a1777", "Arabidopsis thaliana"="#835e9f", "Barbarea vulgaris "="#baa5c8", "Berteroa incana"=	"#ceaac4", "Brassica nigra"="#a96699", "Broccoli"="#aea9ca", "Cabbage"=	"#811770", "Capsella bursa-pastoris"="#6b66a3", "Cardamine hirsuta"="#1b2b7d", "Cauliflower"="#5892ae", "Erophila verna "=	"#5e87c5", "Garden rocket"="#67bde8", "Radish"="#4cb5f5", "Rapeseed"="#008bc4", "Rorippa sylvestris"="#3e8a89", "Sinapis arvensis"="#9abdbb", "Turnip"=	"#c5d6d6", "Pincushion Flower"="#e09aa5", "Heliosperma alpestre"="#ffceda", "Grass of Parnassus"="#d0425d", "Melon"=	"#FA6775","Alfalfa"=	"#e035d7", "Bean"=	"#e03581", "Hairy vetch"=	"#e035ac",
+"Medicago truncatula"=	"#b554a6", "Pea"=	"#68104d", "Oak"=	"#000000", "Chiltern Gentian"=	"#00a7b5", "Willow Gentian"="#15cd7e", "Eyebright"=	"#00bb9f", "Phelipanche ramosa"=	"#08ffda", "Rhinanthus glacialis"="#8eddad", "Dahurian wildrye"="#2fbd03","Festuca rubra"="#2E4600", "Lolium arundinacea"=	"#3c884c", "Lolium perenne"	="#72ae4f", "Oat"=	"#66ff00", "Rice"=	"#b2d24f", "Setaria pumila"=	"#c5cd77", "Setaria viridis"="#edf050", "Siberian wildrye"="#9ff76e", "Wheat"="#fdf351", "Tobacco"="#ff9b7c", "Tomato"="#ff2600", "Rorripa sylvestris"=	"#c473fa", "White Clover"="#8f868c", "Red Clover"="#dad7d9", "Creeping Bentgrass"="#bd9103") 
+ITS.ord_3species <- ordinate(physeq_ITS_Subset3_3species, "PCoA", "bray")
+b3b = plot_ordination(physeq_ITS_Subset3_3species, ITS.ord_3species, type="samples", color="Plant", shape="Seed_fraction", title="ITS1 region - Fungi (Bray-Curtis)")+ scale_color_manual(values=color)+theme_classic(base_size = 12)+ theme(axis.title = element_text(color="black", size=14, face="bold"))+ theme(axis.text = element_text(color="black", size=12, face="bold"))+ theme(legend.text = element_text(colour="black", size = 8, face = "bold"))+ theme(legend.title = element_text(colour="black", size=7, face="bold"))+theme(legend.position = "none")+theme(plot.title = element_text(hjust = 0.5, face="bold"))+scale_shape_manual(values=c(1, 16))+xlab("PCoA1 = 25.8%")+ylab("PCoA2 = 14.6%")
+b3b
+```
+
+### Figure S6B and Permanova Plant family effect: Brassica Faba, Oro
+```{r}
+families <- c("Brassicaceae","Fabaceae", "Orobanchaceae")
+Subset3_ITS1_use_4families <- Subset3_ITS1_use[Subset3_ITS1_use$Family %in% families,]
+dim(Subset3_ITS1_use_4families)
+matrix3_ITS_4families<-Subset3_ITS1_use_4families[c(34:ncol(Subset3_ITS1_use_4families))]
+matrix3_ITS_4families<-matrix3_ITS_4families[,colSums(matrix3_ITS_4families)>=1]
+dim(matrix3_ITS_4families)
+
+# Permanova - Distance based multivariate analysis of variance
+Alltreatments=Subset3_ITS1_use_4families[c(2:33)] 
+head(Alltreatments)
+#Adonis function in Vegan
+library(vegan)
+adonis <- adonis(matrix3_ITS_4families ~ Family, method = "bray", permutations = 999, data=Alltreatments)
+adonis
+
+##Run pairwise permanova
+library(pairwiseAdonis)
+pair_adonis=pairwise.adonis(matrix3_ITS_4families, Alltreatments$Family)
+pair_adonis
+
+library(microbiome)
+##Convert data as phyloseq object
+matrix3_ITS_4familiest=t(matrix3_ITS_4families)
+OTU_ITS_subset3_4families = otu_table(matrix3_ITS_4familiest, taxa_are_rows = TRUE)
+meta_ITS_Subset34families=Subset3_ITS1_use_4families[c(1:33)]
+META_ITS_Subset3_4families=sample_data(meta_ITS_Subset34families)
+physeq_ITS_Subset3_4families = phyloseq(OTU_ITS_subset3_4families,META_ITS_Subset3_4families)
+physeq_ITS_Subset3_4families
+color=c("Apiaceae"="#000000", "Brassicaceae"="#81edff", "Caprifoliaceae"="#8338ec", "Caryophyllaceae"="#ff7c43", "Celastraceae"="#a05195", "Fabaceae"="#f69cbd", "Fagaceae"=	"#90665f", "Gentianaceae"="#6f9d4b", "Orobanchaceae"="#affc41", "Poaceae"=	"#ffdd00", "Solanaceae"="#ff2600","Asteraceae"="grey", "Cucurbitaceae"="darkred") 
+ITS.ord_4families <- ordinate(physeq_ITS_Subset3_4families, "PCoA", "bray")
+b3c = plot_ordination(physeq_ITS_Subset3_4families, ITS.ord_4families, type="samples", color="Family", shape="Seed_fraction", title="ITS1 region - Fungi (Bray-Curtis)")+ scale_color_manual(values=color)+theme_classic(base_size = 12)+ theme(axis.title = element_text(color="black", size=14, face="bold"))+ theme(axis.text = element_text(color="black", size=12, face="bold"))+ theme(legend.text = element_text(colour="black", size = 8, face = "bold"))+ theme(legend.title = element_text(colour="black", size=7, face="bold"))+theme(legend.position = "none")+theme(plot.title = element_text(hjust = 0.5, face="bold"))+scale_shape_manual(values=c(1, 16))+xlab("PCoA1 = 21.1%")+ylab("PCoA2 = 12.3%")
+b3c
+```
+
+
+
+
 ### Import Subset 3 dataset (rarefied across all studies) - 16S
 ```{r}
 Subset3_16S <- read.table("Subset3-16S-V4-table-FINAL-rarefied-transposed.txt", header=TRUE, check.names = FALSE, sep = "\t")
@@ -1729,6 +2481,8 @@ physeq_16S_Subset3
 ## Figure 6A - 16S Plot PCoA on all samples - Bray-Curtis
 ```{r}
 bac.ord <- ordinate(physeq_16S_Subset3, "PCoA", "bray")
+color=c("Carrot"="#ee8332", "Great Masterwort"="#f0810F", "Sunflower"="#fec767", "Alliaria petiolata"="#4a1777", "Arabidopsis thaliana"="#835e9f", "Barbarea vulgaris "="#baa5c8", "Berteroa incana"=	"#ceaac4", "Brassica nigra"="#a96699", "Broccoli"="#aea9ca", "Cabbage"=	"#811770", "Capsella bursa-pastoris"="#6b66a3", "Cardamine hirsuta"="#1b2b7d", "Cauliflower"="#5892ae", "Erophila verna "=	"#5e87c5", "Garden rocket"="#67bde8", "Radish"="#4cb5f5", "Rapeseed"="#008bc4", "Rorippa sylvestris"="#3e8a89", "Sinapis arvensis"="#9abdbb", "Turnip"=	"#c5d6d6", "Pincushion Flower"="#e09aa5", "Heliosperma alpestre"="#ffceda", "Grass of Parnassus"="#d0425d", "Melon"=	"#FA6775","Alfalfa"=	"#e035d7", "Bean"=	"#e03581", "Hairy vetch"=	"#e035ac",
+"Medicago truncatula"=	"#b554a6", "Pea"=	"#68104d", "Oak"=	"#000000", "Chiltern Gentian"=	"#00a7b5", "Willow Gentian"="#15cd7e", "Eyebright"=	"#00bb9f", "Phelipanche ramosa"=	"#08ffda", "Rhinanthus glacialis"="#8eddad", "Dahurian wildrye"="#2fbd03","Festuca rubra"="#2E4600", "Lolium arundinacea"=	"#3c884c", "Lolium perenne"	="#72ae4f", "Oat"=	"#66ff00", "Rice"=	"#b2d24f", "Setaria pumila"=	"#c5cd77", "Setaria viridis"="#edf050", "Siberian wildrye"="#9ff76e", "Wheat"="#fdf351", "Tobacco"="#ff9b7c", "Tomato"="#ff2600", "Rorripa sylvestris"=	"#c473fa", "White Clover"="#8f868c", "Red Clover"="#dad7d9", "Creeping Bentgrass"="#bd9103") 
 b1z = plot_ordination(physeq_16S_Subset3, bac.ord, type="samples", color="Plant", shape="Seed_fraction", title="16S rRNA gene region - Bacteria & Archaea (Bray-Curtis)")+ scale_color_manual(values=color)+theme_classic(base_size = 12)+ theme(axis.title = element_text(color="black", size=14, face="bold"))+ theme(axis.text = element_text(color="black", size=12, face="bold"))+ theme(legend.text = element_text(colour="black", size = 8, face = "bold"))+ theme(legend.title = element_text(colour="black", size=7, face="bold"))+theme(legend.position = "none")+theme(plot.title = element_text(hjust = 0.5, face="bold"))+scale_shape_manual(values=c(3, 1,2, 16))+xlab("PCoA1 = 15.8%")+ylab("PCoA2 = 11.2%")+scale_y_continuous(limits = c(-0.12, 0.2))
 print(b1z)
 ```
@@ -1741,7 +2495,97 @@ figure6AB=ggarrange(b1z, b3,labels = c("A", "B"), ncol = 2)
 figure6AB
 ```
 
-# Figure S11 Picrust2 on 16S and gyrB datasets
+## Figure S14 PcOA colored by country of origin
+```{r}
+#color by country
+color=c("Australia"="#800000", "Austria"="red", "Brazil"="#808000", "Cameroon"="#469990", "Canada"="#000075", "Chile"="chocolate4", "China"=	"darkorange", "Cote d Ivoire"="#ffe119", "Denmark"="#bfef45", "France"=	"#aaffc3", "Guatemala"="#3cb44b", "India"="#42d4f4", "Indonesia"="#4363d8", "Italy"=	"#911eb4", "Japan"="darkslateblue", "Korea"="mediumpurple1", "Luxembourg"="#ffd8b1", "Mali"="#fffac8", "Myanmar"="#dcbeff", "Nepal"=	"gray", "Netherlands"="lightblue2", "New Zealand"="black", "Nigeria"="tan", "Sri Lanka"=	"#fa6775","Sweden"=	"#e035d7", "Tanzania"=	"#e03581", "USA"=	"blue", "NA"="grey", "Thailand"="pink") 
+b1a = plot_ordination(physeq_16S_Subset3, bac.ord, type="samples", color="Country", title="16S rRNA gene region - Bacteria & Archaea (Bray-Curtis)")+theme_classic(base_size = 12)+xlab("PCoA1 = 15.8%")+ylab("PCoA2 = 11.2%")+ theme(axis.title = element_text(color="black", size=14, face="bold"))+ theme(axis.text = element_text(color="black", size=12, face="bold"))+ theme(legend.text = element_text(colour="black", size = 8, face = "bold"))+ theme(legend.title = element_text(colour="black", size=10, face="bold"))+theme(plot.title = element_text(hjust = 0.5, face="bold"))+scale_y_continuous(limits = c(-0.12, 0.2))+ scale_color_manual(values=color)
+b1a
+```
+
+
+
+
+## Figure S5A and Permanova Plant species effect for radish, bean, rapeseed
+```{r}
+plants2 <- c("Radish","Bean", "Rapeseed", "Rice")
+Subset3_16S_use_3species <- Subset3_16S_use[Subset3_16S_use$Plant %in% plants2,]
+dim(Subset3_16S_use_3species)
+matrix3_16S_3species<-Subset3_16S_use_3species[c(39:ncol(Subset3_16S_use_3species))]
+matrix3_16S_3species<-matrix3_16S_3species[,colSums(matrix3_16S_3species)>=1]
+dim(matrix3_16S_3species)
+
+# Permanova - Distance based multivariate analysis of variance
+Alltreatments=Subset3_16S_use_3species[c(2:33)] 
+head(Alltreatments)
+#Adonis function in Vegan
+library(vegan)
+adonis <- adonis(matrix3_16S_3species ~ Plant, method = "bray", permutations = 999, data=Alltreatments)
+adonis
+
+##Run pairwise permanova
+library(pairwiseAdonis)
+pair_adonis=pairwise.adonis(matrix3_16S_3species, Alltreatments$Plant)
+pair_adonis
+
+library(microbiome)
+##Convert data as phyloseq object
+matrix3_16S_3speciest=t(matrix3_16S_3species)
+OTU_16S_subset3_3species = otu_table(matrix3_16S_3speciest, taxa_are_rows = TRUE)
+meta_16S_Subset33species=Subset3_16S_use_3species[c(1:33)]
+META_16S_Subset3_3species=sample_data(meta_16S_Subset33species)
+physeq_16S_Subset3_3species = phyloseq(OTU_16S_subset3_3species,META_16S_Subset3_3species)
+physeq_16S_Subset3_3species
+color=c("Carrot"="#ee8332", "Great Masterwort"="#f0810F", "Sunflower"="#fec767", "Alliaria petiolata"="#4a1777", "Arabidopsis thaliana"="#835e9f", "Barbarea vulgaris "="#baa5c8", "Berteroa incana"=	"#ceaac4", "Brassica nigra"="#a96699", "Broccoli"="#aea9ca", "Cabbage"=	"#811770", "Capsella bursa-pastoris"="#6b66a3", "Cardamine hirsuta"="#1b2b7d", "Cauliflower"="#5892ae", "Erophila verna "=	"#5e87c5", "Garden rocket"="#67bde8", "Radish"="#4cb5f5", "Rapeseed"="#008bc4", "Rorippa sylvestris"="#3e8a89", "Sinapis arvensis"="#9abdbb", "Turnip"=	"#c5d6d6", "Pincushion Flower"="#e09aa5", "Heliosperma alpestre"="#ffceda", "Grass of Parnassus"="#d0425d", "Melon"=	"#FA6775","Alfalfa"=	"#e035d7", "Bean"=	"#e03581", "Hairy vetch"=	"#e035ac",
+"Medicago truncatula"=	"#b554a6", "Pea"=	"#68104d", "Oak"=	"#000000", "Chiltern Gentian"=	"#00a7b5", "Willow Gentian"="#15cd7e", "Eyebright"=	"#00bb9f", "Phelipanche ramosa"=	"#08ffda", "Rhinanthus glacialis"="#8eddad", "Dahurian wildrye"="#2fbd03","Festuca rubra"="#2E4600", "Lolium arundinacea"=	"#3c884c", "Lolium perenne"	="#72ae4f", "Oat"=	"#66ff00", "Rice"=	"#b2d24f", "Setaria pumila"=	"#c5cd77", "Setaria viridis"="#edf050", "Siberian wildrye"="#9ff76e", "Wheat"="#fdf351", "Tobacco"="#ff9b7c", "Tomato"="#ff2600", "Rorripa sylvestris"=	"#c473fa", "White Clover"="#8f868c", "Red Clover"="#dad7d9", "Creeping Bentgrass"="#bd9103") 
+bac.ord_3species <- ordinate(physeq_16S_Subset3_3species, "PCoA", "bray")
+b3b = plot_ordination(physeq_16S_Subset3_3species, bac.ord_3species, type="samples", color="Plant", shape="Seed_fraction", title="16S rRNA gene region - Bacteria & Archaea (Bray-Curtis)")+ scale_color_manual(values=color)+theme_classic(base_size = 12)+ theme(axis.title = element_text(color="black", size=14, face="bold"))+ theme(axis.text = element_text(color="black", size=12, face="bold"))+ theme(legend.text = element_text(colour="black", size = 9, face = "bold"))+ theme(legend.title = element_text(colour="black", size=10, face="bold"))+theme(plot.title = element_text(hjust = 0.5, face="bold"))+scale_shape_manual(values=c(3, 1,2, 16))+xlab("PCoA1 = 20.3%")+ylab("PCoA2 = 15.3%")+scale_y_continuous(limits = c(-0.2, 0.35))+scale_x_continuous(limits = c(-0.27, 0.35))
+b3b
+```
+
+###Figure S6B and Permanova Plant family effect for Brassica, Faba, Oro, Poa
+```{r}
+families <- c("Brassicaceae","Fabaceae", "Orobanchaceae", "Poaceae")
+Subset3_16S_use_4families <- Subset3_16S_use[Subset3_16S_use$Family %in% families,]
+dim(Subset3_16S_use_4families)
+matrix3_16S_4families<-Subset3_16S_use_4families[c(39:ncol(Subset3_16S_use_4families))]
+matrix3_16S_4families<-matrix3_16S_4families[,colSums(matrix3_16S_4families)>=1]
+dim(matrix3_16S_4families)
+
+# Permanova - Distance based multivariate analysis of variance
+Alltreatments=Subset3_16S_use_4families[c(2:33)] 
+head(Alltreatments)
+#Adonis function in Vegan
+library(vegan)
+adonis <- adonis(matrix3_16S_4families ~ Family, method = "bray", permutations = 999, data=Alltreatments)
+adonis
+
+##Run pairwise permanova
+library(pairwiseAdonis)
+pair_adonis=pairwise.adonis(matrix3_16S_4families, Alltreatments$Family)
+pair_adonis
+
+library(microbiome)
+##Convert data as phyloseq object
+matrix3_16S_4familiest=t(matrix3_16S_4families)
+OTU_16S_subset3_4families = otu_table(matrix3_16S_4familiest, taxa_are_rows = TRUE)
+meta_16S_Subset34families=Subset3_16S_use_4families[c(1:33)]
+META_16S_Subset3_4families=sample_data(meta_16S_Subset34families)
+physeq_16S_Subset3_4families = phyloseq(OTU_16S_subset3_4families,META_16S_Subset3_4families)
+physeq_16S_Subset3_4families
+color=c("Apiaceae"="#000000", "Brassicaceae"="#81edff", "Caprifoliaceae"="#8338ec", "Caryophyllaceae"="#ff7c43", "Celastraceae"="#a05195", "Fabaceae"="#f69cbd", "Fagaceae"=	"#90665f", "Gentianaceae"="#6f9d4b", "Orobanchaceae"="#affc41", "Poaceae"=	"#ffdd00", "Solanaceae"="#ff2600","Asteraceae"="grey", "Cucurbitaceae"="darkred") 
+bac.ord_4families <- ordinate(physeq_16S_Subset3_4families, "PCoA", "bray")
+b3d = plot_ordination(physeq_16S_Subset3_4families, bac.ord_4families, type="samples", color="Family", shape="Seed_fraction", title="16S rRNA gene region - Bacteria & Archaea (Bray-Curtis)")+ scale_color_manual(values=color)+theme_classic(base_size = 12)+ theme(axis.title = element_text(color="black", size=14, face="bold"))+ theme(axis.text = element_text(color="black", size=12, face="bold"))+ theme(legend.text = element_text(colour="black", size = 9, face = "bold"))+ theme(legend.title = element_text(colour="black", size=10, face="bold"))+theme(plot.title = element_text(hjust = 0.5, face="bold"))+scale_shape_manual(values=c(3, 1,2, 16))+scale_y_continuous(limits = c(-0.2, 0.3))+scale_x_continuous(limits = c(-0.35, 0.35))+xlab("PCoA1 = 17.5%")+ylab("PCoA2 = 12.8%")+ labs(shape = "Seed Fraction", color = "Plant Family")
+b3d
+```
+
+
+
+
+
+
+
+# Figure S15 Picrust2 on 16S and gyrB datasets
 ### Import Picrust2 KOs Subset 1 dataset - 16S-V4
 ```{r}
 Subset3_16S_picrust <- read.table("16S_Subset1_KOs_pred_metagenome_unstrat.tsv", header=TRUE, check.names = FALSE, sep = "\t")
@@ -1775,7 +2619,7 @@ physeq_16S_picrust_Subset3 = phyloseq(OTU_16S_picrust_subset3,META_16S_picrust_S
 physeq_16S_picrust_Subset3
 ```
 
-## Figure S11A - Picrust 16S Plot PCoA on all samples - Bray-Curtis
+## Figure S15A - Picrust 16S Plot PCoA on all samples - Bray-Curtis
 ```{r}
 color=c("Carrot"="#ee8332", "Great Masterwort"="#f0810F", "Sunflower"="#fec767", "Alliaria petiolata"="#4a1777", "Arabidopsis thaliana"="#835e9f", "Barbarea vulgaris "="#baa5c8", "Berteroa incana"=	"#ceaac4", "Brassica nigra"="#a96699", "Broccoli"="#aea9ca", "Cabbage"=	"#811770", "Capsella bursa-pastoris"="#6b66a3", "Cardamine hirsuta"="#1b2b7d", "Cauliflower"="#5892ae", "Erophila verna "=	"#5e87c5", "Garden rocket"="#67bde8", "Radish"="#4cb5f5", "Rapeseed"="#008bc4", "Rorippa sylvestris"="#3e8a89", "Sinapis arvensis"="#9abdbb", "Turnip"=	"#c5d6d6", "Pincushion Flower"="#e09aa5", "Heliosperma alpestre"="#ffceda", "Grass of Parnassus"="#d0425d", "Melon"=	"#FA6775","Alfalfa"=	"#e035d7", "Bean"=	"#e03581", "Hairy vetch"=	"#e035ac",
 "Medicago truncatula"=	"#b554a6", "Pea"=	"#68104d", "Oak"=	"#000000", "Chiltern Gentian"=	"#00a7b5", "Willow Gentian"="#15cd7e", "Eyebright"=	"#00bb9f", "Phelipanche ramosa"=	"#08ffda", "Rhinanthus glacialis"="#8eddad", "Dahurian wildrye"="#2fbd03","Festuca rubra"="#2E4600", "Lolium arundinacea"=	"#3c884c", "Lolium perenne"	="#72ae4f", "Oat"=	"#66ff00", "Rice"=	"#b2d24f", "Setaria pumila"=	"#c5cd77", "Setaria viridis"="#edf050", "Siberian wildrye"="#9ff76e", "Wheat"="#fdf351", "Tobacco"="#ff9b7c", "Tomato"="#ff2600", "Rorripa sylvestris"=	"#c473fa", "White Clover"="#8f868c", "Red Clover"="#dad7d9", "Creeping Bentgrass"="#bd9103") 
@@ -1783,6 +2627,105 @@ bac.pic <- ordinate(physeq_16S_picrust_Subset3, "NMDS", "bray")
 pic2 = plot_ordination(physeq_16S_picrust_Subset3, bac.pic, type="samples", color="Plant", shape="Seed_fraction", title="16S rRNA gene - Bacteria & Archaea (Picrust2 KOs)")+ scale_color_manual(values=color)+theme_classic(base_size = 12)+ theme(axis.title = element_text(color="black", size=14, face="bold"))+ theme(axis.text = element_text(color="black", size=12, face="bold"))+ theme(legend.text = element_text(colour="black", size = 8, face = "bold"))+ theme(legend.title = element_text(colour="black", size=7, face="bold"))+theme(legend.position = "none")+theme(plot.title = element_text(hjust = 0.5, face="bold"))+scale_shape_manual(values=c(3, 1,2, 16))
 print(pic2)
 ```
+
+```{r}
+#color by botanical family
+color=c("Apiaceae"="#000000", "Brassicaceae"="#81edff", "Caprifoliaceae"="#8338ec", "Caryophyllaceae"="#ff7c43", "Celastraceae"="#a05195", "Fabaceae"="#f69cbd", "Fagaceae"=	"#90665f", "Gentianaceae"="#6f9d4b", "Orobanchaceae"="#affc41", "Poaceae"=	"#ffdd00", "Solanaceae"="#ff2600","Asteraceae"="grey", "Cucurbitaceae"="darkred") 
+pic3 = plot_ordination(physeq_16S_picrust_Subset3, bac.pic, type="samples", color="Family", shape="Seed_fraction", title="16S rRNA gene region - Bacteria & Archaea (Bray-Curtis)")+theme_classic(base_size = 12)+ theme(axis.title = element_text(color="black", size=14, face="bold"))+ theme(axis.text = element_text(color="black", size=12, face="bold"))+ theme(legend.text = element_text(colour="black", size = 8, face = "bold"))+ theme(legend.title = element_text(colour="black", size=10, face="bold"))+theme(plot.title = element_text(hjust = 0.5, face="bold"))+scale_shape_manual(values=c(3, 1,2, 16))+ scale_color_manual(values=color)
+pic3
+```
+
+
+
+
+###Permanova Plant species effect across all plants
+```{r}
+# Permanova - Distance based multivariate analysis of variance
+Alltreatments=Subset3_16S_picrust_use[c(2:33)] 
+head(Alltreatments)
+#Adonis function in Vegan
+library(vegan)
+adonis <- adonis(matrix3_16S_picrust ~ Family, method = "bray", permutations = 999, data=Alltreatments)
+adonis
+
+```
+###Figure S5C and Permanova Plant species effect for radish, bean, rapeseed
+```{r}
+plants2 <- c("Radish","Bean", "Rapeseed", "Rice")
+Subset3_16S_picrust_3species <- Subset3_16S_picrust_use[Subset3_16S_picrust_use$Plant %in% plants2,]
+dim(Subset3_16S_picrust_3species)
+matrix3_16S_picrust_3species<-Subset3_16S_picrust_3species[c(39:ncol(Subset3_16S_picrust_3species))]
+matrix3_16S_picrust_3species<-matrix3_16S_picrust_3species[,colSums(matrix3_16S_picrust_3species)>=1]
+dim(matrix3_16S_picrust_3species)
+
+# Permanova - Distance based multivariate analysis of variance
+Alltreatments=Subset3_16S_picrust_3species[c(2:33)] 
+head(Alltreatments)
+#Adonis function in Vegan
+library(vegan)
+adonis <- adonis(matrix3_16S_picrust_3species ~ Plant, method = "bray", permutations = 999, data=Alltreatments)
+adonis
+
+##Run pairwise permanova
+library(pairwiseAdonis)
+pair_adonis=pairwise.adonis(matrix3_16S_picrust_3species, Alltreatments$Plant)
+pair_adonis
+
+library(microbiome)
+##Convert data as phyloseq object
+matrix3_16S_picrust_3speciest=t(matrix3_16S_picrust_3species)
+OTU_16S_subset3_picrust_3species = otu_table(matrix3_16S_picrust_3speciest, taxa_are_rows = TRUE)
+meta_Subset3_16S_picrust_3species=Subset3_16S_picrust_3species[c(1:33)]
+META_16S_Subset3_picrust_3species=sample_data(meta_Subset3_16S_picrust_3species)
+physeq_16S_Subset3_picrust_3species = phyloseq(OTU_16S_subset3_picrust_3species,META_16S_Subset3_picrust_3species)
+physeq_16S_Subset3_picrust_3species
+color=c("Carrot"="#ee8332", "Great Masterwort"="#f0810F", "Sunflower"="#fec767", "Alliaria petiolata"="#4a1777", "Arabidopsis thaliana"="#835e9f", "Barbarea vulgaris "="#baa5c8", "Berteroa incana"=	"#ceaac4", "Brassica nigra"="#a96699", "Broccoli"="#aea9ca", "Cabbage"=	"#811770", "Capsella bursa-pastoris"="#6b66a3", "Cardamine hirsuta"="#1b2b7d", "Cauliflower"="#5892ae", "Erophila verna "=	"#5e87c5", "Garden rocket"="#67bde8", "Radish"="#4cb5f5", "Rapeseed"="#008bc4", "Rorippa sylvestris"="#3e8a89", "Sinapis arvensis"="#9abdbb", "Turnip"=	"#c5d6d6", "Pincushion Flower"="#e09aa5", "Heliosperma alpestre"="#ffceda", "Grass of Parnassus"="#d0425d", "Melon"=	"#FA6775","Alfalfa"=	"#e035d7", "Bean"=	"#e03581", "Hairy vetch"=	"#e035ac",
+"Medicago truncatula"=	"#b554a6", "Pea"=	"#68104d", "Oak"=	"#000000", "Chiltern Gentian"=	"#00a7b5", "Willow Gentian"="#15cd7e", "Eyebright"=	"#00bb9f", "Phelipanche ramosa"=	"#08ffda", "Rhinanthus glacialis"="#8eddad", "Dahurian wildrye"="#2fbd03","Festuca rubra"="#2E4600", "Lolium arundinacea"=	"#3c884c", "Lolium perenne"	="#72ae4f", "Oat"=	"#66ff00", "Rice"=	"#b2d24f", "Setaria pumila"=	"#c5cd77", "Setaria viridis"="#edf050", "Siberian wildrye"="#9ff76e", "Wheat"="#fdf351", "Tobacco"="#ff9b7c", "Tomato"="#ff2600", "Rorripa sylvestris"=	"#c473fa", "White Clover"="#8f868c", "Red Clover"="#dad7d9", "Creeping Bentgrass"="#bd9103") 
+bac.pic_3species <- ordinate(physeq_16S_Subset3_picrust_3species, "NMDS", "bray")
+pic4 = plot_ordination(physeq_16S_Subset3_picrust_3species, bac.pic_3species, type="samples", color="Plant", shape="Seed_fraction", title="16S rRNA gene region - Bacteria & Archaea (Bray-Curtis)")+ scale_color_manual(values=color)+theme_classic(base_size = 12)+ theme(axis.title = element_text(color="black", size=14, face="bold"))+ theme(axis.text = element_text(color="black", size=12, face="bold"))+ theme(legend.text = element_text(colour="black", size = 9, face = "bold"))+ theme(legend.title = element_text(colour="black", size=10, face="bold"))+theme(plot.title = element_text(hjust = 0.5, face="bold"))+scale_shape_manual(values=c(3, 1,2, 16))
+pic4
+```
+
+
+###Figure S6G and Permanova Plant family effect for Brassica, Fab, Oro, Poa
+```{r}
+families <- c("Brassicaceae","Fabaceae", "Orobanchaceae", "Poaceae")
+Subset3_16S_picrust_4families <- Subset3_16S_picrust_use[Subset3_16S_picrust_use$Family %in% families,]
+dim(Subset3_16S_picrust_4families)
+matrix3_16S_picrust_4families<-Subset3_16S_picrust_4families[c(39:ncol(Subset3_16S_picrust_4families))]
+matrix3_16S_picrust_4families<-matrix3_16S_picrust_4families[,colSums(matrix3_16S_picrust_4families)>=1]
+dim(matrix3_16S_picrust_4families)
+
+# Permanova - Distance based multivariate analysis of variance
+Alltreatments=Subset3_16S_picrust_4families[c(2:33)] 
+head(Alltreatments)
+#Adonis function in Vegan
+library(vegan)
+adonis <- adonis(matrix3_16S_picrust_4families ~ Family, method = "bray", permutations = 999, data=Alltreatments)
+adonis
+
+##Run pairwise permanova
+library(pairwiseAdonis)
+pair_adonis=pairwise.adonis(matrix3_16S_picrust_4families, Alltreatments$Family)
+pair_adonis
+
+library(microbiome)
+##Convert data as phyloseq object
+matrix3_16S_picrust_4familiest=t(matrix3_16S_picrust_4families)
+OTU_16S_subset3_picrust_4families = otu_table(matrix3_16S_picrust_4familiest, taxa_are_rows = TRUE)
+meta_Subset3_16S_picrust_4families=Subset3_16S_picrust_4families[c(1:33)]
+META_16S_Subset3_picrust_4families=sample_data(meta_Subset3_16S_picrust_4families)
+physeq_16S_Subset3_picrust_4families = phyloseq(OTU_16S_subset3_picrust_4families,META_16S_Subset3_picrust_4families)
+physeq_16S_Subset3_picrust_4families
+color=c("Apiaceae"="#000000", "Brassicaceae"="#81edff", "Caprifoliaceae"="#8338ec", "Caryophyllaceae"="#ff7c43", "Celastraceae"="#a05195", "Fabaceae"="#f69cbd", "Fagaceae"=	"#90665f", "Gentianaceae"="#6f9d4b", "Orobanchaceae"="#affc41", "Poaceae"=	"#ffdd00", "Solanaceae"="#ff2600","Asteraceae"="grey", "Cucurbitaceae"="darkred")
+bac.pic_4families <- ordinate(physeq_16S_Subset3_picrust_4families, "NMDS", "bray")
+pic5 = plot_ordination(physeq_16S_Subset3_picrust_4families, bac.pic_4families, type="samples", color="Family", shape="Seed_fraction", title="16S rRNA gene region - Bacteria & Archaea (Bray-Curtis)")+ scale_color_manual(values=color)+theme_classic(base_size = 12)+ theme(axis.title = element_text(color="black", size=14, face="bold"))+ theme(axis.text = element_text(color="black", size=12, face="bold"))+ theme(legend.text = element_text(colour="black", size = 9, face = "bold"))+ theme(legend.title = element_text(colour="black", size=10, face="bold"))+theme(plot.title = element_text(hjust = 0.5, face="bold"))+scale_shape_manual(values=c(3, 1,2, 16))+theme(legend.position = "none")
+pic5
+```
+
++xlab("PCoA1 = 20.3%")+ylab("PCoA2 = 15.3%")
+
+
 
 
 ## 16S KO richness by sample
@@ -1849,7 +2792,7 @@ physeq_gyrB_picrust_Subset3_Core2=prune_taxa(taxa_sums(physeq_gyrB_picrust_Subse
 physeq_gyrB_picrust_Subset3_Core2
 ```
 
-## Figure S11B - Picrust gyrB Plot PCoA on all samples - Bray-Curtis
+## Figure S15B - Picrust gyrB Plot PCoA on all samples - Bray-Curtis
 ```{r}
 color=c("Carrot"="#ee8332", "Great Masterwort"="#f0810F", "Sunflower"="#fec767", "Alliaria petiolata"="#4a1777", "Arabidopsis thaliana"="#835e9f", "Barbarea vulgaris "="#baa5c8", "Berteroa incana"=	"#ceaac4", "Brassica nigra"="#a96699", "Broccoli"="#aea9ca", "Cabbage"=	"#811770", "Capsella bursa-pastoris"="#6b66a3", "Cardamine hirsuta"="#1b2b7d", "Cauliflower"="#5892ae", "Erophila verna "=	"#5e87c5", "Garden rocket"="#67bde8", "Radish"="#4cb5f5", "Rapeseed"="#008bc4", "Rorippa sylvestris"="#3e8a89", "Sinapis arvensis"="#9abdbb", "Turnip"=	"#c5d6d6", "Pincushion Flower"="#e09aa5", "Heliosperma alpestre"="#ffceda", "Grass of Parnassus"="#d0425d", "Melon"=	"#FA6775","Alfalfa"=	"#e035d7", "Bean"=	"#e03581", "Hairy vetch"=	"#e035ac",
 "Medicago truncatula"=	"#b554a6", "Pea"=	"#68104d", "Oak"=	"#000000", "Chiltern Gentian"=	"#00a7b5", "Willow Gentian"="#15cd7e", "Eyebright"=	"#00bb9f", "Phelipanche ramosa"=	"#08ffda", "Rhinanthus glacialis"="#8eddad", "Dahurian wildrye"="#2fbd03","Festuca rubra"="#2E4600", "Lolium arundinacea"=	"#3c884c", "Lolium perenne"	="#72ae4f", "Oat"=	"#66ff00", "Rice"=	"#b2d24f", "Setaria pumila"=	"#c5cd77", "Setaria viridis"="#edf050", "Siberian wildrye"="#9ff76e", "Wheat"="#fdf351", "Tobacco"="#ff9b7c", "Tomato"="#ff2600", "Rorripa sylvestris"=	"#c473fa", "White Clover"="#8f868c", "Red Clover"="#dad7d9", "Creeping Bentgrass"="#bd9103") 
